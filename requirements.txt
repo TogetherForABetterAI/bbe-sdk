@@ -1,0 +1,9 @@
+requests
+asyncio
+torch
+numpy
+httpx
+pydantic
+grpcio
+protobuf
+pika
