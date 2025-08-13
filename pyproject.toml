@@ -29,3 +29,12 @@ dependencies = [
     "requests",
     "pydantic"
 ]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["bbe_sdk*"]
+
+[tool.setuptools.package-data]
+bbe_sdk = ["proto/*.proto"]
