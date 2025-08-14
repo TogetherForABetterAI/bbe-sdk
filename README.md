@@ -1,4 +1,4 @@
-# bbe-sdk
+# bbe sdk
 
 SDK de evaluación black-box para modelos ML. Permite consumir batches de datos por medio de colas de rabbit y enviar las predicciones al servicio de calibración.
 
@@ -8,4 +8,4 @@ SDK de evaluación black-box para modelos ML. Permite consumir batches de datos 
 ```bash
 export GITLAB_USER="gitlab+deploy-token-XXXX"
 export GITLAB_TOKEN="REEMPLAZAR_POR_TOKEN"
-pip install "git+https://${GITLAB_USER}:${GITLAB_TOKEN}@gitlab.com/<grupo>/<bbe-sdk>.git@v0.1.0"
+pip install "git+https://${GITLAB_USER}:${GITLAB_TOKEN}@gitlab.com/<grupo>/<bbe_sdk>.git@v0.1.0"

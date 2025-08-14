@@ -1,0 +1,56 @@
+Metadata-Version: 2.4
+Name: bbe_sdk
+Version: 0.1.0
+Summary: Black Box Evaluation SDK to evaluate ML models remotely
+Author-email: Iñaki Llorens <llorensinaki22@gmail.com>
+License: MIT License
+        
+        Copyright (c) 2025 Iñaki Llorens
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+Keywords: machine-learning,evaluation,grpc,rabbitmq,SDK
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy
+Requires-Dist: protobuf>=3.20
+Requires-Dist: grpcio
+Requires-Dist: pika
+Requires-Dist: requests
+Requires-Dist: pydantic
+Dynamic: license-file
+
+# bbe sdk
+
+SDK de evaluación black-box para modelos ML. Permite consumir batches de datos por medio de colas de rabbit y enviar las predicciones al servicio de calibración.
+
+## Instalación
+
+### A) Desde repo privado GitLab con Deploy Token
+```bash
+export GITLAB_USER="gitlab+deploy-token-XXXX"
+export GITLAB_TOKEN="REEMPLAZAR_POR_TOKEN"
+pip install "git+https://${GITLAB_USER}:${GITLAB_TOKEN}@gitlab.com/<grupo>/<bbe_sdk>.git@v0.1.0"

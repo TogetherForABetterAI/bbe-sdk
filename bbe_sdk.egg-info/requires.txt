@@ -1,0 +1,6 @@
+numpy
+protobuf>=3.20
+grpcio
+pika
+requests
+pydantic
