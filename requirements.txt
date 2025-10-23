@@ -1,9 +1,6 @@
-requests
-asyncio
-torch
 numpy
-httpx
-pydantic
+protobuf>=3.20
 grpcio
-protobuf
 pika
+requests
+pydantic
