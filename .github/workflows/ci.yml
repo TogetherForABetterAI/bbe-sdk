@@ -1,0 +1,111 @@
+name: BBE SDK CI Tests
+
+on:
+  push:
+    branches: [main, develop, feat/*]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  test:
+    name: Run Test Suite
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write # For publishing test results
+      checks: write # For publishing test results as check runs
+      issues: write # For publishing test results as issue comments
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements-test.txt
+
+      - name: Run tests with coverage
+        env:
+          REPORT_OUTPUT: test-results/md_report.md
+        continue-on-error: true
+        run: |
+          mkdir -p test-results
+          echo "REPORT_FILE=${REPORT_OUTPUT}" >> "$GITHUB_ENV"
+          pytest tests/ -v --tb=short --color=yes \
+            --junitxml=test-results/junit.xml \
+            --cov=bbe_sdk \
+            --cov-report=xml:test-results/coverage.xml \
+            --cov-report=html:test-results/coverage \
+            --cov-report=term \
+            --md-report --md-report-flavor gfm \
+            --md-report-output "$REPORT_OUTPUT"
+
+      - name: Render test report to PR
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: always()
+        with:
+          header: test-report
+          recreate: true
+          path: ${{ env.REPORT_FILE }}
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 30
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./test-results/coverage.xml
+          flags: unittests
+          name: codecov-bbe-sdk
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  lint:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install linting tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install black flake8 isort
+
+      - name: Check code formatting with Black
+        continue-on-error: true
+        run: |
+          black --check bbe_sdk/ tests/ || echo "❌ Code formatting issues found. Run 'black bbe_sdk/ tests/' to fix."
+
+      - name: Lint with flake8
+        continue-on-error: true
+        run: |
+          flake8 bbe_sdk/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 bbe_sdk/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Check import sorting with isort
+        continue-on-error: true
+        run: |
+          isort --check-only bbe_sdk/ tests/ || echo "❌ Import sorting issues found. Run 'isort bbe_sdk/ tests/' to fix."
