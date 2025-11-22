@@ -90,7 +90,7 @@ class BlackBoxSession:
             body: Raw message body
         """
         try:
-            # Process incoming data and get predictions with session_id
+            # Process incoming data and get predictions
             result = self._incoming_data.process_data_batch(body)
 
             # Check if batch was duplicate (returns None)
@@ -100,7 +100,7 @@ class BlackBoxSession:
 
             predictions, is_last_batch, batch_index, session_id = result
 
-            # Send predictions back with session_id
+            # Send predictions to the server
             self._outcoming_data.send_predictions(
                 predictions=predictions,
                 is_last_batch=is_last_batch,
