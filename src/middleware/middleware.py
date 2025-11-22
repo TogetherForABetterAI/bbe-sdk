@@ -1,13 +1,23 @@
 import pika
 import logging
-from src.utils.config import DATASET_EXCHANGE, REPLIES_EXCHANGE, config_params
 
 
 class Middleware:
-    def __init__(self, host, port, routing_key):
+    def __init__(self, host, port, username, password):
+        """
+        Initialize middleware with RabbitMQ credentials.
+
+        Args:
+            host: RabbitMQ host
+            port: RabbitMQ port
+            username: RabbitMQ username
+            password: RabbitMQ password
+            routing_key: Routing key (typically client_id)
+        """
         try:
+            credentials = pika.PlainCredentials(username, password)
             connection = pika.BlockingConnection(
-                pika.ConnectionParameters(host=host, port=port)
+                pika.ConnectionParameters(host=host, port=port, credentials=credentials)
             )
         except Exception as e:
             logging.error(
@@ -15,46 +25,35 @@ class Middleware:
             )
             raise
         self._connection = connection
-        channel = connection.channel()
-        channel.confirm_delivery()
-        channel.basic_qos(prefetch_count=1)
-        self._channel = channel
-        self._routing_key = routing_key
+        self._channel = connection.channel()
+        self._channel.confirm_delivery()
+        self._channel.basic_qos(prefetch_count=1)
 
-    def declare_queue(self, queue_name: str, durable: bool = False):
-        self._channel.queue_declare(queue=queue_name, durable=durable)
+    def publish(self, message: str, queue_name: str):
+        """
+        Send a message to RabbitMQ.
 
-    def bind_queue(self, queue_name, exchange_name, routing_key):
-        self._channel.queue_bind(
-            exchange=exchange_name, queue=queue_name, routing_key=routing_key
-        )
+        Args:
+            message: Message body to send
+            queue_name: Queue name (for direct queue publishing)
 
-    def declare_exchange(
-        self, exchange_name: str, exchange_type: str = "direct", durable: bool = False
-    ):
+        Note:
+            If queue_name is provided, sends directly to the queue (exchange="" and routing_key=queue_name).
+        """
         try:
-            self._channel.exchange_declare(
-                exchange=exchange_name, exchange_type=exchange_type, durable=durable
-            )
-            logging.info(f"Exchange '{exchange_name}' declared successfully")
-        except Exception as e:
-            logging.error(f"Failed to declare exchange '{exchange_name}': {e}")
-            raise e
-
-    def basic_send(self, message: str = "", exchange_name: str = ""):
-        try:
+            # Send directly to queue (default exchange with queue name as routing key)
             self._channel.basic_publish(
-                exchange=exchange_name,
-                routing_key=self._routing_key,
+                exchange="",  # Default exchange
+                routing_key=queue_name,
                 body=message,
                 properties=pika.BasicProperties(
                     delivery_mode=pika.DeliveryMode.Persistent
                 ),
             )
-
         except Exception as e:
             logging.error(
-                f"action: message_sending | result: fail | error: {e} | routing_key: {self._routing_key}"
+                f"action: message_sending | result: fail | error: {e} | "
+                f"queue: {queue_name} | size: {len(message)}"
             )
 
     def basic_consume(self, queue_name: str, callback_function):
@@ -70,42 +69,19 @@ class Middleware:
 
         return wrapper
 
-    def start(self):
-        try:
+    def start_consuming(self):
+
+        if self._channel and not self._channel.is_closed:
             self._channel.start_consuming()
-        except OSError:
-            self.close()
 
     def close(self):
         try:
-            self._channel.close()
-            self._connection.close()
+            if self._channel and not self._channel.is_closed:
+                self._channel.close()
+
+            if self._connection:
+                self._connection.close()
         except Exception as e:
             logging.error(
                 f"action: rabbitmq_connection_close | result: fail | error: {e}"
-            )
-
-    @staticmethod
-    def setup_client_middleware(client_id, callback_function):
-        try:
-            middleware = Middleware(
-                host=config_params["rabbitmq_host"],
-                port=config_params["rabbitmq_port"],
-                routing_key=client_id,
-            )
-
-            middleware.declare_exchange(DATASET_EXCHANGE, "direct", False)
-            middleware.declare_exchange(REPLIES_EXCHANGE, "direct", False)
-            middleware.declare_queue(f"{client_id}_unlabeled_queue", False)
-            middleware.bind_queue(
-                f"{client_id}_unlabeled_queue",
-                DATASET_EXCHANGE,
-                f"{client_id}.unlabeled",
-            )
-            middleware.basic_consume(f"{client_id}_unlabeled_queue", callback_function)
-
-            return middleware
-        except Exception as e:
-            logging.error(
-                f"action: client_middleware_setup | result: fail | error: {e}"
             )

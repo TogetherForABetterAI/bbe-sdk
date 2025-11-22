@@ -19,19 +19,22 @@ class IncomingData:
     - Invoke user callback for inference
     """
 
-    def __init__(self, inputs_format, on_message_callback: Callable):
+    def __init__(self, inputs_format, on_message_callback: Callable, client_id: str):
         """
         Initialize the incoming data handler.
 
         Args:
             inputs_format: Expected format of input data (with dtype and shape)
             on_message_callback: User-provided callback function for model inference
+            client_id: Client identifier for queue naming
         """
         self.inputs_format = inputs_format
         self.on_message_callback = on_message_callback
+        self.client_id = client_id
+        self.income_queue = f"{client_id}_dispatcher_queue"
         self._count = 0
 
-    def process_data_batch(self, body: bytes) -> tuple[np.ndarray, bool, int]:
+    def process_data_batch(self, body: bytes) -> tuple[np.ndarray, bool, int, str]:
         """
         Process an incoming data batch.
 
@@ -39,7 +42,7 @@ class IncomingData:
             body: Raw protobuf message body
 
         Returns:
-            Tuple of (predictions, is_last_batch, batch_index)
+            Tuple of (predictions, is_last_batch, batch_index, session_id)
 
         Raises:
             ValueError: If data format is invalid or processing fails
@@ -51,7 +54,8 @@ class IncomingData:
         data_batch.ParseFromString(body)
 
         logging.info(
-            f"action: receive_data_batch | result: success | size: {len(body)} | eof: {data_batch.is_last_batch}"
+            f"action: receive_data_batch | result: success | size: {len(body)} | "
+            f"eof: {data_batch.is_last_batch} | session_id: {data_batch.session_id}"
         )
 
         if not self.inputs_format:
@@ -71,7 +75,12 @@ class IncomingData:
             logging.error(f"action: model_inference | result: fail | error: {e}")
             raise
 
-        return predictions, data_batch.is_last_batch, data_batch.batch_index
+        return (
+            predictions,
+            data_batch.is_last_batch,
+            data_batch.batch_index,
+            data_batch.session_id,
+        )
 
     def _parse_data(self, data: bytes) -> np.ndarray:
         """

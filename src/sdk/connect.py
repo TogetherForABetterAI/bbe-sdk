@@ -5,6 +5,7 @@ Connect component: Handles authentication, token validation, and user informatio
 import logging
 import requests
 from src.utils.data import parse_inputs_format
+from src.middleware.middleware import Middleware
 
 
 class InvalidTokenError(Exception):
@@ -21,6 +22,12 @@ class Connect:
     - Token validation
     - User information retrieval
     - Service connection establishment
+    - RabbitMQ credentials retrieval
+    - Middleware creation and initialization
+
+    The Connect component encapsulates all connection logic and returns
+    a ready-to-use middleware instance. If any step fails, the process
+    is halted immediately.
     """
 
     def __init__(self, token: str, client_id: str):
@@ -37,11 +44,14 @@ class Connect:
         self.token = token
         self.client_id = client_id
         self._user_info = None
+        self._rabbitmq_credentials = None
+        self._middleware = None
 
         # Validate token and retrieve user information
         self._validate_token()
         self._retrieve_user_info()
         self._connect_to_service()
+        self._create_middleware()
 
     def _validate_token(self) -> None:
         """
@@ -111,10 +121,11 @@ class Connect:
 
     def _connect_to_service(self) -> None:
         """
-        Establish connection to the users-service.
+        Establish connection to the users-service and retrieve RabbitMQ credentials.
 
         Raises:
             InvalidTokenError: If connection establishment fails
+            RuntimeError: If credentials are missing in response
         """
         try:
             connect_resp = requests.post(
@@ -137,9 +148,44 @@ class Connect:
                 f"Connection failed: {connect_data.get('message', 'Unknown error')}"
             )
 
+        # Extract RabbitMQ credentials from response
+        credentials = connect_data.get("credentials")
+        if not credentials:
+            raise RuntimeError("Connection response missing RabbitMQ credentials")
+
+        self._rabbitmq_credentials = {
+            "username": credentials.get("username"),
+            "password": credentials.get("password"),
+            "host": credentials.get("host"),
+            "port": credentials.get("port"),
+        }
+
         logging.info(
-            f"action: connect_to_service | result: success | client_id: {self.client_id}"
+            f"action: connect_to_service | result: success | client_id: {self.client_id} | "
+            f"message: {connect_data.get('message')} | rabbitmq_host: {self._rabbitmq_credentials['host']}"
         )
+
+    def _create_middleware(self) -> None:
+        """
+        Create and initialize middleware connection with RabbitMQ.
+
+        Raises:
+            RuntimeError: If middleware creation fails
+        """
+        try:
+            self._middleware = Middleware(
+                host=self._rabbitmq_credentials["host"],
+                port=self._rabbitmq_credentials["port"],
+                username=self._rabbitmq_credentials["username"],
+                password=self._rabbitmq_credentials["password"],
+                routing_key=self.client_id,
+            )
+            logging.info(
+                f"action: create_middleware | result: success | client_id: {self.client_id}"
+            )
+        except Exception as e:
+            logging.error(f"action: create_middleware | result: fail | error: {e}")
+            raise RuntimeError(f"Failed to create middleware connection: {e}")
 
     @property
     def user_info(self) -> dict:
@@ -170,3 +216,13 @@ class Connect:
     def outputs_format(self) -> str:
         """Get outputs format."""
         return self._user_info.get("outputs_format", "")
+
+    @property
+    def rabbitmq_credentials(self) -> dict:
+        """Get RabbitMQ credentials."""
+        return self._rabbitmq_credentials
+
+    @property
+    def middleware(self):
+        """Get the initialized middleware instance."""
+        return self._middleware

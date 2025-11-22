@@ -1,0 +1,1 @@
+# Outcoming data protobuf definitions
