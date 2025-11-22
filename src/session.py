@@ -18,8 +18,7 @@ class BlackBoxSession:
     """
     Main session class that orchestrates the SDK components.
 
-    This class integrates Connect, IncomingData, and OutcomingData components
-    to provide a seamless experience for the user.
+    This class integrates Connect, IncomingData, and OutcomingData components.
     """
 
     def __init__(self, eval_input_batch, token, client_id):
