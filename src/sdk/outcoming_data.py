@@ -69,4 +69,11 @@ class OutcomingData:
         )
 
         # Send directly to the client's calibration queue
-        self.middleware.basic_send(message=batch, queue_name=self.outcome_queue)
+        self.middleware.publish(message=batch, queue_name=self.outcome_queue)
+
+        # Stop consuming if this is the last batch
+        if is_last_batch:
+            logging.info(
+                f"Last batch sent. Stopping consumption for session: {session_id}"
+            )
+            self.middleware.stop_consuming()

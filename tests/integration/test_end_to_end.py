@@ -4,7 +4,8 @@ import numpy as np
 import time
 import threading
 from unittest.mock import patch, Mock
-from src.session import BlackBoxSession, InvalidTokenError
+from src.session import BlackBoxSession
+from src.models.errors import InvalidTokenError
 from tests.mocks.auth_server_mock import UsersServerMock
 from tests.mocks.middleware_mock import MiddlewareFactory, MiddlewareMock
 from tests.mocks.protobuf_fixtures import ProtobufFixtures
@@ -328,7 +329,7 @@ class TestBlackBoxSessionEndToEnd(IntegrationTestBase):
                 user_data, valid_token, flexible_eval_function
             )
 
-            from src.utils.data import parse_inputs_format
+            from src.config.data import parse_inputs_format
 
             expected_format = parse_inputs_format(user_data["inputs_format"])
             assert session._inputs_format.shape == expected_format.shape

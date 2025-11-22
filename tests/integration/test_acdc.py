@@ -9,7 +9,8 @@ import pytest
 import responses
 import numpy as np
 from unittest.mock import patch, Mock
-from src.session import BlackBoxSession, InvalidTokenError
+from src.session import BlackBoxSession
+from src.models.errors import InvalidTokenError
 from tests.mocks.auth_server_mock import UsersServerMock
 from tests.mocks.middleware_mock import MiddlewareFactory
 

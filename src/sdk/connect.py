@@ -4,14 +4,15 @@ Connect component: Handles authentication, token validation, and user informatio
 
 import logging
 import requests
-from src.utils.data import parse_inputs_format
+from typing import Optional, Callable
+from src.config.config import USERS_SERVICE_BASE_URL
 from src.middleware.middleware import Middleware
-
-
-class InvalidTokenError(Exception):
-    """Exception raised when token validation fails."""
-
-    pass
+from src.models.errors import InvalidTokenError
+from src.models.responses import (
+    TokenValidationResponse,
+    RabbitMQCredentials,
+    ConnectResponse,
+)
 
 
 class Connect:
@@ -25,44 +26,49 @@ class Connect:
     - RabbitMQ credentials retrieval
     - Middleware creation and initialization
 
-    The Connect component encapsulates all connection logic and returns
-    a ready-to-use middleware instance. If any step fails, the process
-    is halted immediately.
+    The Connect component encapsulates all connection logic.
+    Methods are public and should be called explicitly from the session.
     """
 
-    def __init__(self, token: str, client_id: str):
+    def __init__(
+        self,
+        token: str,
+        client_id: str,
+        base_url: Optional[str] = None,  # For testing purposes
+        http_client: Optional[Callable] = None,  # For testing purposes
+        middleware_factory: Optional[Callable] = None,  # For testing purposes
+    ):
         """
         Initialize the connection component.
 
         Args:
             token: Authentication token
             client_id: Client identifier
-
-        Raises:
-            InvalidTokenError: If token validation or connection fails
+            base_url: Base URL for the users service (defaults to config value)
+            http_client: HTTP client for requests (for testing, defaults to requests module)
+            middleware_factory: Factory function to create middleware (for testing)
         """
         self.token = token
         self.client_id = client_id
-        self._user_info = None
+        self.base_url = base_url or USERS_SERVICE_BASE_URL
+        self._http_client = http_client or requests
+        self._middleware_factory = middleware_factory or Middleware
         self._rabbitmq_credentials = None
         self._middleware = None
 
-        # Validate token and retrieve user information
-        self._validate_token()
-        self._retrieve_user_info()
-        self._connect_to_service()
-        self._create_middleware()
-
-    def _validate_token(self) -> None:
+    def validate_token(self) -> TokenValidationResponse:
         """
         Validate the authentication token with the users-service.
+
+        Returns:
+            TokenValidationResponse with validation result
 
         Raises:
             InvalidTokenError: If token validation fails
         """
         try:
-            validate_token_resp = requests.post(
-                "http://users-service:8000/tokens/validate",
+            validate_token_resp = self._http_client.post(
+                f"{self.base_url}/tokens/validate",
                 json={"token": self.token, "client_id": self.client_id},
                 timeout=5,
             )
@@ -75,61 +81,30 @@ class Connect:
             )
 
         validate_token_data = validate_token_resp.json()
-        if not validate_token_data.get("is_valid", False):
-            raise InvalidTokenError("Token validation failed: not authorized.")
-
-    def _retrieve_user_info(self) -> None:
-        """
-        Retrieve user information from the users-service.
-
-        Raises:
-            InvalidTokenError: If user info retrieval fails
-            RuntimeError: If input format specification is invalid
-        """
-        try:
-            user_info_resp = requests.get(
-                f"http://users-service:8000/users/{self.client_id}",
-                timeout=5,
-            )
-        except Exception as e:
-            raise InvalidTokenError(f"Failed to connect to users server: {e}")
-
-        if user_info_resp.status_code != 200:
-            raise InvalidTokenError(
-                f"Users server returned status {user_info_resp.status_code}: {user_info_resp.text}"
-            )
-
-        self._user_info = user_info_resp.json()
-
-        # Parse and validate inputs format
-        inputs_format_str = self._user_info.get("inputs_format", "")
-        inputs_format = parse_inputs_format(inputs_format_str)
-
-        if not inputs_format:
-            raise RuntimeError(
-                f"System configuration error: Invalid input format specification '{inputs_format_str}' for user {self.client_id}."
-            )
-
-        self._user_info["parsed_inputs_format"] = inputs_format
-
-        logging.debug(
-            f"action: receive_user_info | result: success | User info: "
-            f"{self._user_info.get('client_id')}, {self._user_info.get('username')}, "
-            f"{self._user_info.get('email')}, {self._user_info.get('model_type')}, "
-            f"{inputs_format}, {self._user_info.get('outputs_format')}"
+        response = TokenValidationResponse(
+            is_valid=validate_token_data.get("is_valid", False),
+            message=validate_token_data.get("message"),
         )
 
-    def _connect_to_service(self) -> None:
+        if not response.is_valid:
+            raise InvalidTokenError("Token validation failed: not authorized.")
+
+        return response
+
+    def connect_to_service(self) -> ConnectResponse:
         """
         Establish connection to the users-service and retrieve RabbitMQ credentials.
+
+        Returns:
+            ConnectResponse object with credentials and user configuration
 
         Raises:
             InvalidTokenError: If connection establishment fails
             RuntimeError: If credentials are missing in response
         """
         try:
-            connect_resp = requests.post(
-                "http://users-service:8000/users/connect",
+            connect_resp = self._http_client.post(
+                f"{self.base_url}/users/connect",
                 json={"client_id": self.client_id, "token": self.token},
                 headers={"Content-Type": "application/json"},
                 timeout=5,
@@ -153,76 +128,87 @@ class Connect:
         if not credentials:
             raise RuntimeError("Connection response missing RabbitMQ credentials")
 
-        self._rabbitmq_credentials = {
-            "username": credentials.get("username"),
-            "password": credentials.get("password"),
-            "host": credentials.get("host"),
-            "port": credentials.get("port"),
-        }
+        rabbitmq_credentials = RabbitMQCredentials(
+            username=credentials.get("username"),
+            password=credentials.get("password"),
+            host=credentials.get("host"),
+            port=credentials.get("port"),
+        )
+
+        # Store credentials for middleware creation
+        self._rabbitmq_credentials = rabbitmq_credentials
+
+        # Create ConnectResponse with all data
+        response = ConnectResponse(
+            status=connect_data.get("status"),
+            message=connect_data.get("message"),
+            credentials=rabbitmq_credentials,
+            inputs_format=connect_data.get("inputs_format", ""),
+        )
 
         logging.info(
             f"action: connect_to_service | result: success | client_id: {self.client_id} | "
-            f"message: {connect_data.get('message')} | rabbitmq_host: {self._rabbitmq_credentials['host']}"
+            f"message: {response.message} | rabbitmq_host: {rabbitmq_credentials.host}"
         )
 
-    def _create_middleware(self) -> None:
+        return response
+
+    def create_middleware(self):
         """
         Create and initialize middleware connection with RabbitMQ.
 
+        Returns:
+            Initialized Middleware instance
+
         Raises:
-            RuntimeError: If middleware creation fails
+            RuntimeError: If middleware creation fails or credentials not set
         """
+        if not self._rabbitmq_credentials:
+            raise RuntimeError(
+                "RabbitMQ credentials not available. Call connect_to_service() first."
+            )
+
         try:
-            self._middleware = Middleware(
-                host=self._rabbitmq_credentials["host"],
-                port=self._rabbitmq_credentials["port"],
-                username=self._rabbitmq_credentials["username"],
-                password=self._rabbitmq_credentials["password"],
+            self._middleware = self._middleware_factory(
+                host=self._rabbitmq_credentials.host,
+                port=self._rabbitmq_credentials.port,
+                username=self._rabbitmq_credentials.username,
+                password=self._rabbitmq_credentials.password,
                 routing_key=self.client_id,
             )
             logging.info(
                 f"action: create_middleware | result: success | client_id: {self.client_id}"
             )
+            return self._middleware
         except Exception as e:
             logging.error(f"action: create_middleware | result: fail | error: {e}")
             raise RuntimeError(f"Failed to create middleware connection: {e}")
 
-    @property
-    def user_info(self) -> dict:
-        """Get user information dictionary."""
-        return self._user_info
+    def try_connect(self) -> tuple:
+        """
+        Execute the complete connection flow and return middleware and connection response.
 
-    @property
-    def inputs_format(self):
-        """Get parsed inputs format."""
-        return self._user_info.get("parsed_inputs_format")
+        This method orchestrates all connection steps:
+        1. Validate token
+        2. Connect to service and get RabbitMQ credentials + user config
+        3. Create and return middleware instance
 
-    @property
-    def username(self) -> str:
-        """Get username."""
-        return self._user_info.get("username", "")
+        Returns:
+            Tuple of (middleware, ConnectResponse) ready to use
 
-    @property
-    def email(self) -> str:
-        """Get user email."""
-        return self._user_info.get("email", "")
+        Raises:
+            InvalidTokenError: If authentication or connection fails
+            RuntimeError: If any step in the connection process fails
+        """
+        logging.info(
+            f"action: try_connect | status: starting | client_id: {self.client_id}"
+        )
 
-    @property
-    def model_type(self) -> str:
-        """Get model type."""
-        return self._user_info.get("model_type", "")
+        self.validate_token()
+        connect_response = self.connect_to_service()
+        middleware = self.create_middleware()
 
-    @property
-    def outputs_format(self) -> str:
-        """Get outputs format."""
-        return self._user_info.get("outputs_format", "")
-
-    @property
-    def rabbitmq_credentials(self) -> dict:
-        """Get RabbitMQ credentials."""
-        return self._rabbitmq_credentials
-
-    @property
-    def middleware(self):
-        """Get the initialized middleware instance."""
-        return self._middleware
+        logging.info(
+            f"action: try_connect | status: success | client_id: {self.client_id}"
+        )
+        return middleware, connect_response.inputs_format

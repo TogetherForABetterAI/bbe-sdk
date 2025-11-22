@@ -56,17 +56,71 @@ class Middleware:
             )
 
     def basic_consume(self, queue_name: str, callback_function):
+        """
+        Start consuming messages from a queue.
+
+        Args:
+            queue_name: Name of the queue to consume from
+            callback_function: Callback function to handle messages
+        """
         self._channel.basic_consume(
             queue=queue_name,
-            on_message_callback=self.callback_wrapper(callback_function),
+            on_message_callback=callback_function,
+            auto_ack=False,  # Manual acknowledgment
         )
 
-    def callback_wrapper(self, callback_function):
-        def wrapper(ch, method, properties, body):
-            callback_function(ch, method, properties, body)
-            ch.basic_ack(delivery_tag=method.delivery_tag)
+    def ack_message(self, channel: pika.channel.Channel, delivery_tag: int):
+        """
+        Acknowledge a message.
 
-        return wrapper
+        Args:
+            channel: The channel to use
+            delivery_tag: The delivery tag of the message to ACK
+        """
+        try:
+            if channel and not channel.is_closed:
+                channel.basic_ack(delivery_tag=delivery_tag)
+                logging.debug(f"ACKed message with delivery_tag={delivery_tag}")
+            else:
+                logging.warning(f"Cannot ACK message: channel is closed")
+        except Exception as e:
+            logging.error(f"Failed to ACK message {delivery_tag}: {e}")
+            raise
+
+    def nack_message(
+        self, channel: pika.channel.Channel, delivery_tag: int, requeue: bool = False
+    ):
+        """
+        Negative acknowledge a message (NACK).
+
+        Args:
+            channel: The channel to use
+            delivery_tag: The delivery tag of the message to NACK
+            requeue: Whether to requeue the message (True) or discard it (False)
+        """
+        try:
+            if channel and not channel.is_closed:
+                channel.basic_nack(delivery_tag=delivery_tag, requeue=requeue)
+                logging.debug(
+                    f"NACKed message with delivery_tag={delivery_tag}, requeue={requeue}"
+                )
+            else:
+                logging.warning(f"Cannot NACK message: channel is closed")
+        except Exception as e:
+            logging.error(
+                f"Failed to NACK message {delivery_tag} (requeue={requeue}): {e}"
+            )
+            raise
+
+    def stop_consuming(self):
+        """Stop consuming messages."""
+        try:
+            if self._channel and not self._channel.is_closed:
+                self._channel.stop_consuming()
+                logging.info("Stopped consuming messages")
+        except Exception as e:
+            logging.error(f"Failed to stop consuming: {e}")
+            raise
 
     def start_consuming(self):
 

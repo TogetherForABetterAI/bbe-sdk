@@ -32,7 +32,6 @@ class IncomingData:
         self.on_message_callback = on_message_callback
         self.client_id = client_id
         self.income_queue = f"{client_id}_dispatcher_queue"
-        self._count = 0
         self._processed_batch_indices = (
             set()
         )  # Track processed batch indices to avoid duplicates
@@ -63,10 +62,6 @@ class IncomingData:
             )
             return None  # Return None to indicate duplicate batch
 
-        # Mark this batch as processed
-        self._processed_batch_indices.add(data_batch.batch_index)
-        self._count += 1
-
         logging.info(
             f"action: receive_data_batch | result: success | size: {len(body)} | "
             f"eof: {data_batch.is_last_batch} | session_id: {data_batch.session_id} | "
@@ -89,6 +84,9 @@ class IncomingData:
         except Exception as e:
             logging.error(f"action: model_inference | result: fail | error: {e}")
             raise
+
+        # Mark this batch as processed
+        self._processed_batch_indices.add(data_batch.batch_index)
 
         return (
             predictions,
@@ -188,8 +186,3 @@ class IncomingData:
                 raise ValueError(f"Failed to transpose data to CHW format: {e}")
 
         return data_array
-
-    @property
-    def batch_count(self) -> int:
-        """Get the number of batches processed."""
-        return self._count

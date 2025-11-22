@@ -8,10 +8,13 @@ This module orchestrates the three main components:
 """
 
 import logging
-from src.utils.logger import initialize_logging
-from src.sdk.connect import Connect, InvalidTokenError
+from typing import Optional
+from src.config.logger import initialize_logging
+from src.sdk.connect import Connect
 from src.sdk.incoming_data import IncomingData
 from src.sdk.outcoming_data import OutcomingData
+from src.models.responses import InputsFormat, parse_inputs_format
+import numpy as np
 
 
 class BlackBoxSession:
@@ -33,18 +36,22 @@ class BlackBoxSession:
         initialize_logging("INFO")
         try:
             # Connect - Handle authentication, user info, and middleware setup
-            self._connect = Connect(token=token, client_id=client_id)
+            connect = Connect(token=token, client_id=client_id)
 
-            # Store user information
-            self._client_id = self._connect.client_id
-            self._username = self._connect.username
-            self._email = self._connect.email
-            self._model_type = self._connect.model_type
-            self._inputs_format = self._connect.inputs_format
-            self._outputs_format = self._connect.outputs_format
+            # Execute complete connection flow and get middleware + connection response
+            middleware, inputs_format = connect.try_connect()
 
-            # Get middleware from Connect component
-            self._middleware = self._connect.middleware
+            # Parse inputs format 
+            inputs_format = parse_inputs_format(inputs_format)
+            if not inputs_format:
+                raise RuntimeError(
+                    f"System configuration error: Invalid input format specification '{inputs_format.inputs_format}' for user {client_id}."
+                )
+
+            # Store parsed format and middleware
+            self._client_id = client_id
+            self._inputs_format = inputs_format
+            self._middleware = middleware
 
             # IncomingData - Handle data processing
             self._incoming_data = IncomingData(
@@ -69,13 +76,16 @@ class BlackBoxSession:
                 f"action: setup_outcoming | result: success | queue: {self._outcoming_data.outcome_queue}"
             )
 
-            # Start consuming immediately upon initialization
+            # This blocks until stop_consuming() is called
             self._middleware.start_consuming()
 
         except Exception as e:
             logging.error(f"Failed to initialize BlackBoxSession: {e}")
-            self._middleware.close()
             raise
+        finally:
+            if self._middleware:
+                self._middleware.close()
+                logging.info("Middleware connection closed")
 
     def _handle_incoming_data(self, ch, method, properties, body):
         """
@@ -96,6 +106,8 @@ class BlackBoxSession:
             # Check if batch was duplicate (returns None)
             if result is None:
                 logging.debug("Duplicate batch detected, skipping processing")
+                # ACK the duplicate message to remove it from queue
+                self._middleware.ack_message(ch, method.delivery_tag)
                 return
 
             predictions, is_last_batch, batch_index, session_id = result
@@ -107,5 +119,54 @@ class BlackBoxSession:
                 batch_index=batch_index,
                 session_id=session_id,
             )
+
+            # ACK the message only after successfully sending the response
+            self._middleware.ack_message(ch, method.delivery_tag)
+            logging.debug(f"Successfully processed and ACKed batch_index={batch_index}")
+
+        except ValueError as e:
+            # Data parsing/validation errors - NACK without requeue
+            logging.error(f"action: handle_data | result: parse_error | error: {e}")
+            self._middleware.nack_message(ch, method.delivery_tag, requeue=False)
+
         except Exception as e:
+            # Other errors - NACK with requeue for retry
             logging.error(f"action: handle_data | result: fail | error: {e}")
+            self._middleware.nack_message(ch, method.delivery_tag, requeue=True)
+
+
+def parse_inputs_format(inputs_format_str: str) -> Optional[InputsFormat]:
+    """
+    Parse input format string into InputsFormat object.
+
+    Args:
+        inputs_format_str: String representation of shape, e.g., "(1, 224, 224, 3)"
+
+    Returns:
+        InputsFormat object with parsed dtype and shape, or None if empty
+
+    Raises:
+        ValueError: If the format string is invalid
+    """
+    if not inputs_format_str or not inputs_format_str.strip():
+        return None
+
+    if not (inputs_format_str.startswith("(") and inputs_format_str.endswith(")")):
+        raise ValueError(f"Invalid shape format in: {inputs_format_str}")
+
+    try:
+        shape_str = inputs_format_str.strip("()")
+        shape_parts = [part.strip() for part in shape_str.split(",") if part.strip()]
+
+        if not shape_parts:
+            raise ValueError("Empty shape not allowed")
+
+        shape = tuple(map(int, shape_parts))
+
+        if any(dim <= 0 for dim in shape):
+            raise ValueError("All dimensions must be positive")
+
+    except ValueError as e:
+        raise ValueError(f"Invalid shape format in: {inputs_format_str}") from e
+
+    return InputsFormat(shape=shape, dtype=np.float32)
