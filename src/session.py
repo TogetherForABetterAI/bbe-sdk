@@ -75,6 +75,7 @@ class BlackBoxSession:
 
         except Exception as e:
             logging.error(f"Failed to initialize BlackBoxSession: {e}")
+            self._middleware.close()
             raise
 
     def _handle_incoming_data(self, ch, method, properties, body):
@@ -91,9 +92,14 @@ class BlackBoxSession:
         """
         try:
             # Process incoming data and get predictions with session_id
-            predictions, is_last_batch, batch_index, session_id = (
-                self._incoming_data.process_data_batch(body)
-            )
+            result = self._incoming_data.process_data_batch(body)
+
+            # Check if batch was duplicate (returns None)
+            if result is None:
+                logging.debug("Duplicate batch detected, skipping processing")
+                return
+
+            predictions, is_last_batch, batch_index, session_id = result
 
             # Send predictions back with session_id
             self._outcoming_data.send_predictions(
@@ -104,5 +110,3 @@ class BlackBoxSession:
             )
         except Exception as e:
             logging.error(f"action: handle_data | result: fail | error: {e}")
-            self._middleware.close()
-            raise
