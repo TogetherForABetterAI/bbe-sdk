@@ -12,7 +12,6 @@ class Middleware:
             port: RabbitMQ port
             username: RabbitMQ username
             password: RabbitMQ password
-            routing_key: Routing key (typically client_id)
         """
         try:
             credentials = pika.PlainCredentials(username, password)
