@@ -1,6 +1,7 @@
+from src.pb.outcomingData import calibration_pb2
 import numpy as np
 from typing import List, Tuple, Optional
-from bbe_sdk.proto import dataset_pb2, calibration_pb2
+from src.proto import dataset_pb2
 
 
 class ProtobufFixtures:

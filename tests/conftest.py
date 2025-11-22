@@ -2,9 +2,9 @@ import pytest
 import numpy as np
 from unittest.mock import Mock, patch
 import responses
-from bbe_sdk.utils.data import InputsFormat
-from bbe_sdk.pb.dataset_service import dataset_service_pb2
-from bbe_sdk.proto import calibration_pb2
+from src.utils.data import InputsFormat
+from src.pb.dataset_service import dataset_service_pb2
+from src.pb.outcomingData import calibration_pb2
 
 
 @pytest.fixture

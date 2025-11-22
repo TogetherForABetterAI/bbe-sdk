@@ -1,8 +1,8 @@
 import numpy as np
 from typing import Dict, Any, List, Tuple
 from unittest.mock import Mock
-from bbe_sdk.utils.data import InputsFormat
-from bbe_sdk.session import BlackBoxSession
+from src.utils.data import InputsFormat
+from src.session import BlackBoxSession
 from tests.mocks.auth_server_mock import UsersServerMock
 from tests.mocks.middleware_mock import MiddlewareFactory
 

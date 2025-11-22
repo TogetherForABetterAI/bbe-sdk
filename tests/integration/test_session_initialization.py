@@ -2,7 +2,7 @@ import pytest
 import responses
 import numpy as np
 from unittest.mock import patch, Mock
-from bbe_sdk.session import BlackBoxSession, InvalidTokenError
+from src.session import BlackBoxSession, InvalidTokenError
 from tests.mocks.auth_server_mock import UsersServerMock
 from tests.mocks.middleware_mock import MiddlewareFactory
 
@@ -298,7 +298,7 @@ class TestBlackBoxSessionInitialization:
                     client_id=user_data["client_id"],
                 )
 
-                from bbe_sdk.utils.data import parse_inputs_format
+                from src.utils.data import parse_inputs_format
 
                 expected_format = parse_inputs_format(user_data["inputs_format"])
                 assert session._inputs_format.shape == expected_format.shape
@@ -382,7 +382,7 @@ class TestBlackBoxSessionInitialization:
                     client_id=user_data["client_id"],
                 )
 
-                from bbe_sdk.utils.data import parse_inputs_format
+                from src.utils.data import parse_inputs_format
 
                 expected_format = parse_inputs_format(shape_str)
                 assert session._inputs_format.shape == expected_format.shape

@@ -9,7 +9,7 @@ import pytest
 import responses
 import numpy as np
 from unittest.mock import patch, Mock
-from bbe_sdk.session import BlackBoxSession, InvalidTokenError
+from src.session import BlackBoxSession, InvalidTokenError
 from tests.mocks.auth_server_mock import UsersServerMock
 from tests.mocks.middleware_mock import MiddlewareFactory
 
@@ -132,7 +132,7 @@ class TestACDCDataProcessing:
             batch_size = 5
             correct_data = np.random.rand(batch_size, 256, 256, 1).astype(np.float32)
 
-            from bbe_sdk.pb.dataset_service import dataset_service_pb2
+            from src.pb.dataset_service import dataset_service_pb2
 
             data_batch = dataset_service_pb2.DataBatchUnlabeled()
             data_batch.data = correct_data.tobytes()
@@ -210,7 +210,7 @@ class TestACDCEndToEnd:
             )
 
             # Simulate processing multiple batches
-            from bbe_sdk.pb.dataset_service import dataset_service_pb2
+            from src.pb.dataset_service import dataset_service_pb2
 
             num_batches = 3
             batch_size = 10
@@ -276,7 +276,7 @@ class TestACDCEndToEnd:
             )
 
             # Create and process a batch
-            from bbe_sdk.pb.dataset_service import dataset_service_pb2
+            from src.pb.dataset_service import dataset_service_pb2
 
             batch_data = np.random.rand(5, 256, 256, 1).astype(np.float32)
             data_batch = dataset_service_pb2.DataBatchUnlabeled()
@@ -316,7 +316,7 @@ class TestACDCErrorHandling:
             )
 
             # Create batch with wrong total size (not divisible by 256*256*1)
-            from bbe_sdk.pb.dataset_service import dataset_service_pb2
+            from src.pb.dataset_service import dataset_service_pb2
 
             wrong_size_data = np.random.rand(100).astype(np.float32)  # Wrong size
             data_batch = dataset_service_pb2.DataBatchUnlabeled()

@@ -2,8 +2,8 @@ import pytest
 import responses
 import numpy as np
 from unittest.mock import patch, Mock
-from bbe_sdk.session import BlackBoxSession
-from bbe_sdk.proto import calibration_pb2
+from src.session import BlackBoxSession
+from src.pb.outcomingData import calibration_pb2
 from tests.mocks.auth_server_mock import UsersServerMock
 from tests.mocks.middleware_mock import MiddlewareFactory, MiddlewareMock
 from tests.mocks.protobuf_fixtures import ProtobufFixtures
