@@ -1,7 +1,7 @@
 import os
 
 
-USERS_SERVICE_BASE_URL = f"http://users-service:8000"
+CONNECTION_SERVICE_BASE_URL = f"http://connection-service:8000"
 
 
 def initialize_config():

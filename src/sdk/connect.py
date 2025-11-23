@@ -5,7 +5,7 @@ Connect component: Handles authentication, token validation, and user informatio
 import logging
 import requests
 from typing import Optional, Callable
-from src.config.config import USERS_SERVICE_BASE_URL
+from src.config.config import CONNECTION_SERVICE_BASE_URL
 from src.middleware.middleware import Middleware
 from src.models.errors import InvalidTokenError
 from src.models.responses import (
@@ -13,11 +13,12 @@ from src.models.responses import (
     RabbitMQCredentials,
     ConnectResponse,
 )
+from src.models.inputs_format import InputsFormat
 
 
 class Connect:
     """
-    Manages connection to the users-service and handles authentication.
+    Manages connection with the server and handles authentication.
 
     Responsibilities:
     - Token validation
@@ -50,50 +51,15 @@ class Connect:
         """
         self.token = token
         self.client_id = client_id
-        self.base_url = base_url or USERS_SERVICE_BASE_URL
+        self.base_url = base_url or CONNECTION_SERVICE_BASE_URL
         self._http_client = http_client or requests
         self._middleware_factory = middleware_factory or Middleware
         self._rabbitmq_credentials = None
         self._middleware = None
 
-    def validate_token(self) -> TokenValidationResponse:
-        """
-        Validate the authentication token with the users-service.
-
-        Returns:
-            TokenValidationResponse with validation result
-
-        Raises:
-            InvalidTokenError: If token validation fails
-        """
-        try:
-            validate_token_resp = self._http_client.post(
-                f"{self.base_url}/tokens/validate",
-                json={"token": self.token, "client_id": self.client_id},
-                timeout=5,
-            )
-        except Exception as e:
-            raise InvalidTokenError(f"Failed to connect to users server: {e}")
-
-        if validate_token_resp.status_code != 200:
-            raise InvalidTokenError(
-                f"Users server returned status {validate_token_resp.status_code}: {validate_token_resp.text}"
-            )
-
-        validate_token_data = validate_token_resp.json()
-        response = TokenValidationResponse(
-            is_valid=validate_token_data.get("is_valid", False),
-            message=validate_token_data.get("message"),
-        )
-
-        if not response.is_valid:
-            raise InvalidTokenError("Token validation failed: not authorized.")
-
-        return response
-
     def connect_to_service(self) -> ConnectResponse:
         """
-        Establish connection to the users-service and retrieve RabbitMQ credentials.
+        Establish connection with the server and retrieve RabbitMQ credentials.
 
         Returns:
             ConnectResponse object with credentials and user configuration
@@ -110,7 +76,7 @@ class Connect:
                 timeout=5,
             )
         except Exception as e:
-            raise InvalidTokenError(f"Failed to connect to users-service: {e}")
+            raise InvalidTokenError(f"Failed to connect to server: {e}")
 
         if connect_resp.status_code != 200:
             raise InvalidTokenError(
@@ -204,7 +170,6 @@ class Connect:
             f"action: try_connect | status: starting | client_id: {self.client_id}"
         )
 
-        self.validate_token()
         connect_response = self.connect_to_service()
         middleware = self.create_middleware()
 

@@ -8,12 +8,11 @@ This module orchestrates the three main components:
 """
 
 import logging
-from typing import Optional
 from src.config.logger import initialize_logging
 from src.sdk.connect import Connect
 from src.sdk.incoming_data import IncomingData
 from src.sdk.outcoming_data import OutcomingData
-from src.models.responses import InputsFormat, parse_inputs_format
+from src.models.inputs_format import parse_inputs_format
 import numpy as np
 
 
@@ -41,7 +40,7 @@ class BlackBoxSession:
             # Execute complete connection flow and get middleware + connection response
             middleware, inputs_format = connect.try_connect()
 
-            # Parse inputs format 
+            # Parse inputs format
             inputs_format = parse_inputs_format(inputs_format)
             if not inputs_format:
                 raise RuntimeError(
@@ -133,40 +132,3 @@ class BlackBoxSession:
             # Other errors - NACK with requeue for retry
             logging.error(f"action: handle_data | result: fail | error: {e}")
             self._middleware.nack_message(ch, method.delivery_tag, requeue=True)
-
-
-def parse_inputs_format(inputs_format_str: str) -> Optional[InputsFormat]:
-    """
-    Parse input format string into InputsFormat object.
-
-    Args:
-        inputs_format_str: String representation of shape, e.g., "(1, 224, 224, 3)"
-
-    Returns:
-        InputsFormat object with parsed dtype and shape, or None if empty
-
-    Raises:
-        ValueError: If the format string is invalid
-    """
-    if not inputs_format_str or not inputs_format_str.strip():
-        return None
-
-    if not (inputs_format_str.startswith("(") and inputs_format_str.endswith(")")):
-        raise ValueError(f"Invalid shape format in: {inputs_format_str}")
-
-    try:
-        shape_str = inputs_format_str.strip("()")
-        shape_parts = [part.strip() for part in shape_str.split(",") if part.strip()]
-
-        if not shape_parts:
-            raise ValueError("Empty shape not allowed")
-
-        shape = tuple(map(int, shape_parts))
-
-        if any(dim <= 0 for dim in shape):
-            raise ValueError("All dimensions must be positive")
-
-    except ValueError as e:
-        raise ValueError(f"Invalid shape format in: {inputs_format_str}") from e
-
-    return InputsFormat(shape=shape, dtype=np.float32)

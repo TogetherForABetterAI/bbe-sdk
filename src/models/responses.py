@@ -1,5 +1,5 @@
 """
-Response models from the users-service API.
+Response models from the Server.
 """
 
 from typing import Optional
