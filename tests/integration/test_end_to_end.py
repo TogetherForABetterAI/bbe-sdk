@@ -33,7 +33,7 @@ class TestBlackBoxSessionEndToEnd(IntegrationTestBase):
             sample_user_data, valid_token, image_classifier
         )
 
-        assert session._client_id == sample_user_data["client_id"]
+        assert session._user_id == sample_user_data["user_id"]
         assert session._inputs_format.shape == (1, 28, 28)
         assert session._inputs_format.dtype == np.float32
 
@@ -236,7 +236,7 @@ class TestBlackBoxSessionEndToEnd(IntegrationTestBase):
                 session = BlackBoxSession(
                     eval_input_batch=dummy_eval_function,
                     token=valid_token,
-                    client_id=sample_user_data["client_id"],
+                    user_id=sample_user_data["user_id"],
                 )
 
     @responses.activate

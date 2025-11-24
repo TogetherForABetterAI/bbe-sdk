@@ -17,7 +17,7 @@ class TestConnect:
     def setup_method(self):
         """Setup test fixtures."""
         self.token = "test_token_123"
-        self.client_id = "test_client_456"
+        self.user_id = "test_client_456"
         self.base_url = "http://test-service:8000"
 
         # Mock HTTP client
@@ -38,7 +38,7 @@ class TestConnect:
 
         connect = Connect(
             token=self.token,
-            client_id=self.client_id,
+            user_id=self.user_id,
             base_url=self.base_url,
             http_client=self.mock_http_client,
         )
@@ -49,7 +49,7 @@ class TestConnect:
         # Assert
         self.mock_http_client.post.assert_called_once_with(
             f"{self.base_url}/tokens/validate",
-            json={"token": self.token, "client_id": self.client_id},
+            json={"token": self.token, "user_id": self.user_id},
             timeout=5,
         )
 
@@ -63,7 +63,7 @@ class TestConnect:
 
         connect = Connect(
             token=self.token,
-            client_id=self.client_id,
+            user_id=self.user_id,
             base_url=self.base_url,
             http_client=self.mock_http_client,
         )
@@ -82,7 +82,7 @@ class TestConnect:
 
         connect = Connect(
             token=self.token,
-            client_id=self.client_id,
+            user_id=self.user_id,
             base_url=self.base_url,
             http_client=self.mock_http_client,
         )
@@ -95,7 +95,7 @@ class TestConnect:
         """Test successful user info retrieval."""
         # Arrange
         user_data = {
-            "client_id": self.client_id,
+            "user_id": self.user_id,
             "username": "test_user",
             "email": "test@example.com",
             "model_type": "classification",
@@ -110,7 +110,7 @@ class TestConnect:
 
         connect = Connect(
             token=self.token,
-            client_id=self.client_id,
+            user_id=self.user_id,
             base_url=self.base_url,
             http_client=self.mock_http_client,
         )
@@ -145,7 +145,7 @@ class TestConnect:
 
         connect = Connect(
             token=self.token,
-            client_id=self.client_id,
+            user_id=self.user_id,
             base_url=self.base_url,
             http_client=self.mock_http_client,
         )
@@ -173,7 +173,7 @@ class TestConnect:
 
         connect = Connect(
             token=self.token,
-            client_id=self.client_id,
+            user_id=self.user_id,
             base_url=self.base_url,
             http_client=self.mock_http_client,
         )
@@ -187,7 +187,7 @@ class TestConnect:
         # Arrange
         connect = Connect(
             token=self.token,
-            client_id=self.client_id,
+            user_id=self.user_id,
             base_url=self.base_url,
             http_client=self.mock_http_client,
             middleware_factory=self.mock_middleware_factory,
@@ -211,7 +211,7 @@ class TestConnect:
             port=5672,
             username="user",
             password="pass",
-            routing_key=self.client_id,
+            routing_key=self.user_id,
         )
 
     def test_create_middleware_without_credentials(self):
@@ -219,7 +219,7 @@ class TestConnect:
         # Arrange
         connect = Connect(
             token=self.token,
-            client_id=self.client_id,
+            user_id=self.user_id,
             base_url=self.base_url,
             http_client=self.mock_http_client,
             middleware_factory=self.mock_middleware_factory,
@@ -241,7 +241,7 @@ class TestConnect:
         mock_user_resp = Mock()
         mock_user_resp.status_code = 200
         mock_user_resp.json.return_value = {
-            "client_id": self.client_id,
+            "user_id": self.user_id,
             "username": "test_user",
             "email": "test@example.com",
             "model_type": "classification",
@@ -269,7 +269,7 @@ class TestConnect:
 
         connect = Connect(
             token=self.token,
-            client_id=self.client_id,
+            user_id=self.user_id,
             base_url=self.base_url,
             http_client=self.mock_http_client,
             middleware_factory=self.mock_middleware_factory,

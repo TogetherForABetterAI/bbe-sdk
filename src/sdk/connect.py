@@ -34,7 +34,7 @@ class Connect:
     def __init__(
         self,
         token: str,
-        client_id: str,
+        user_id: str,
         base_url: Optional[str] = None,  # For testing purposes
         http_client: Optional[Callable] = None,  # For testing purposes
         middleware_factory: Optional[Callable] = None,  # For testing purposes
@@ -44,13 +44,13 @@ class Connect:
 
         Args:
             token: Authentication token
-            client_id: Client identifier
+            user_id: Client identifier
             base_url: Base URL for the users service (defaults to config value)
             http_client: HTTP client for requests (for testing, defaults to requests module)
             middleware_factory: Factory function to create middleware (for testing)
         """
         self.token = token
-        self.client_id = client_id
+        self.user_id = user_id
         self.base_url = base_url or CONNECTION_SERVICE_BASE_URL
         self._http_client = http_client or requests
         self._middleware_factory = middleware_factory or Middleware
@@ -71,7 +71,7 @@ class Connect:
         try:
             connect_resp = self._http_client.post(
                 f"{self.base_url}/users/connect",
-                json={"client_id": self.client_id, "token": self.token},
+                json={"user_id": self.user_id, "token": self.token},
                 headers={"Content-Type": "application/json"},
                 timeout=5,
             )
@@ -113,7 +113,7 @@ class Connect:
         )
 
         logging.info(
-            f"action: connect_to_service | result: success | client_id: {self.client_id} | "
+            f"action: connect_to_service | result: success | user_id: {self.user_id} | "
             f"message: {response.message} | rabbitmq_host: {rabbitmq_credentials.host}"
         )
 
@@ -140,10 +140,10 @@ class Connect:
                 port=self._rabbitmq_credentials.port,
                 username=self._rabbitmq_credentials.username,
                 password=self._rabbitmq_credentials.password,
-                routing_key=self.client_id,
+                routing_key=self.user_id,
             )
             logging.info(
-                f"action: create_middleware | result: success | client_id: {self.client_id}"
+                f"action: create_middleware | result: success | user_id: {self.user_id}"
             )
             return self._middleware
         except Exception as e:
@@ -167,13 +167,11 @@ class Connect:
             RuntimeError: If any step in the connection process fails
         """
         logging.info(
-            f"action: try_connect | status: starting | client_id: {self.client_id}"
+            f"action: try_connect | status: starting | user_id: {self.user_id}"
         )
 
         connect_response = self.connect_to_service()
         middleware = self.create_middleware()
 
-        logging.info(
-            f"action: try_connect | status: success | client_id: {self.client_id}"
-        )
+        logging.info(f"action: try_connect | status: success | user_id: {self.user_id}")
         return middleware, connect_response.inputs_format

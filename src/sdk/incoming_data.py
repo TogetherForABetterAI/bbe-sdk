@@ -19,19 +19,19 @@ class IncomingData:
     - Invoke user callback for inference
     """
 
-    def __init__(self, inputs_format, on_message_callback: Callable, client_id: str):
+    def __init__(self, inputs_format, on_message_callback: Callable, user_id: str):
         """
         Initialize the incoming data handler.
 
         Args:
             inputs_format: Expected format of input data (with dtype and shape)
             on_message_callback: User-provided callback function for model inference
-            client_id: Client identifier for queue naming
+            user_id: Client identifier for queue naming
         """
         self.inputs_format = inputs_format
         self.on_message_callback = on_message_callback
-        self.client_id = client_id
-        self.income_queue = f"{client_id}_dispatcher_queue"
+        self.user_id = user_id
+        self.income_queue = f"{user_id}_dispatcher_queue"
         self._processed_batch_indices = (
             set()
         )  # Track processed batch indices to avoid duplicates
@@ -75,8 +75,13 @@ class IncomingData:
 
         # Process the data
         data_array = self._parse_data(data_batch.data)
+        logging.debug(f"action: after_parse | shape: {data_array.shape}")
+
         data_array = self._reshape_data(data_array)
+        logging.debug(f"action: after_reshape | shape: {data_array.shape}")
+
         data_array = self._transpose_if_needed(data_array)
+        logging.debug(f"action: after_transpose | shape: {data_array.shape}")
 
         # Invoke user callback for inference
         try:

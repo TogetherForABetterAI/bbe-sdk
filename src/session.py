@@ -23,19 +23,19 @@ class BlackBoxSession:
     This class integrates Connect, IncomingData, and OutcomingData components.
     """
 
-    def __init__(self, eval_input_batch, token, client_id):
+    def __init__(self, eval_input_batch, token, user_id):
         """
         Initialize the BlackBox session.
 
         Args:
             eval_input_batch: User-provided callback function for model inference
             token: Authentication token
-            client_id: Client identifier
+            user_id: Client identifier
         """
         initialize_logging("INFO")
         try:
             # Connect - Handle authentication, user info, and middleware setup
-            connect = Connect(token=token, client_id=client_id)
+            connect = Connect(token=token, user_id=user_id)
 
             # Execute complete connection flow and get middleware + connection response
             middleware, inputs_format = connect.try_connect()
@@ -44,11 +44,11 @@ class BlackBoxSession:
             inputs_format = parse_inputs_format(inputs_format)
             if not inputs_format:
                 raise RuntimeError(
-                    f"System configuration error: Invalid input format specification '{inputs_format.inputs_format}' for user {client_id}."
+                    f"System configuration error: Invalid input format specification '{inputs_format.inputs_format}' for user {user_id}."
                 )
 
             # Store parsed format and middleware
-            self._client_id = client_id
+            self._user_id = user_id
             self._inputs_format = inputs_format
             self._middleware = middleware
 
@@ -56,7 +56,7 @@ class BlackBoxSession:
             self._incoming_data = IncomingData(
                 inputs_format=self._inputs_format,
                 on_message_callback=eval_input_batch,
-                client_id=client_id,
+                user_id=user_id,
             )
 
             # Setup consumption from the client's incoming data queue
@@ -69,7 +69,7 @@ class BlackBoxSession:
 
             # OutcomingData - Handle sending predictions
             self._outcoming_data = OutcomingData(
-                middleware=self._middleware, client_id=client_id
+                middleware=self._middleware, user_id=user_id
             )
             logging.info(
                 f"action: setup_outcoming | result: success | queue: {self._outcoming_data.outcome_queue}"

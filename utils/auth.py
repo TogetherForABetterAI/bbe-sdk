@@ -10,21 +10,22 @@ import uuid
 import requests
 from typing import Optional
 
-def get_auth_token(client_id: str) -> Optional[str]:
+
+def get_auth_token(user_id: str) -> Optional[str]:
     """
     Get authentication token for a client.
 
     Args:
-        client_id: The client identifier
+        user_id: The client identifier
 
     Returns:
         Authentication token if successful, None otherwise
     """
     try:
-        print(f"Obtaining token for client_id: {client_id}...")
+        print(f"Obtaining token for user_id: {user_id}...")
         response = requests.post(
             f"http://users-service:8000/tokens/create",
-            json={"client_id": client_id},
+            json={"user_id": user_id},
             headers={"Content-Type": "application/json"},
             timeout=5,
         )
@@ -58,7 +59,7 @@ def create_user(
         outputs_format: Format string for output data (e.g., "(10,)")
 
     Returns:
-        client_id of the created user
+        user_id of the created user
 
     Raises:
         Exception: If user creation fails
@@ -78,11 +79,11 @@ def create_user(
             timeout=5,
         )
         response.raise_for_status()
-        client_id = response.json().get("client_id")
-        if not client_id:
-            raise ValueError("Response does not contain a valid client_id.")
-        print(f"User created successfully. client_id: {client_id}")
-        return client_id
+        user_id = response.json().get("user_id")
+        if not user_id:
+            raise ValueError("Response does not contain a valid user_id.")
+        print(f"User created successfully. user_id: {user_id}")
+        return user_id
     except Exception as e:
         print(f"Error creating user: {e}")
         raise
@@ -139,7 +140,7 @@ def get_or_create_user(
 
     print(f"\nAuthentication successful")
     print(f"  username: {username}")
-    print(f"  client_id: {user_id}")
+    print(f"  user_id: {user_id}")
     print(f"  token: {token[:20]}...")
     print("=" * 60)
 

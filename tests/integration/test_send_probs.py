@@ -155,7 +155,7 @@ class TestBlackBoxSessionSendProbs(IntegrationTestBase):
             session = BlackBoxSession(
                 eval_input_batch=mock_eval_function,
                 token=valid_token,
-                client_id=sample_user_data["client_id"],
+                user_id=sample_user_data["user_id"],
             )
 
             predictions = [[0.5, 0.3, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]

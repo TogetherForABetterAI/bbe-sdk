@@ -33,7 +33,7 @@ class IntegrationTestBase:
             session = BlackBoxSession(
                 eval_input_batch=eval_function,
                 token=token,
-                client_id=user_data["client_id"],
+                user_id=user_data["user_id"],
             )
 
             return session, self
@@ -42,16 +42,16 @@ class IntegrationTestBase:
 class TestHelpers:
     @staticmethod
     def create_test_user_data(
-        client_id: str = "test_client",
+        user_id: str = "test_client",
         model_type: str = "classification",
         inputs_format: str = "image:float32:(1,28,28)",
         outputs_format: str = "float32:(10,)",
     ) -> Dict[str, Any]:
         """Creamos datos de usuario para tests"""
         return {
-            "client_id": client_id,
-            "username": f"user_{client_id}",
-            "email": f"{client_id}@test.com",
+            "user_id": user_id,
+            "username": f"user_{user_id}",
+            "email": f"{user_id}@test.com",
             "model_type": model_type,
             "inputs_format": inputs_format,
             "outputs_format": outputs_format,

@@ -17,17 +17,17 @@ class OutcomingData:
     - Send predictions through middleware
     """
 
-    def __init__(self, middleware, client_id: str):
+    def __init__(self, middleware, user_id: str):
         """
         Initialize the outcoming data handler.
 
         Args:
             middleware: Middleware instance for sending messages
-            client_id: Client identifier for queue naming
+            user_id: Client identifier for queue naming
         """
         self.middleware = middleware
-        self.client_id = client_id
-        self.outcome_queue = f"{client_id}_calibration_queue"
+        self.user_id = user_id
+        self.outcome_queue = f"{user_id}_calibration_queue"
 
     def send_predictions(
         self,

@@ -36,11 +36,11 @@ class TestACDCSessionInitialization:
             session = BlackBoxSession(
                 eval_input_batch=mock_eval_function_acdc,
                 token=valid_token,
-                client_id=sample_user_data_acdc["client_id"],
+                user_id=sample_user_data_acdc["user_id"],
             )
 
             # Verify session initialization
-            assert session._client_id == sample_user_data_acdc["client_id"]
+            assert session._user_id == sample_user_data_acdc["user_id"]
             assert session._username == sample_user_data_acdc["username"]
             assert session._model_type == sample_user_data_acdc["model_type"]
 
@@ -51,7 +51,7 @@ class TestACDCSessionInitialization:
 
             # Verify middleware was set up correctly
             mock_middleware_setup.assert_called_once_with(
-                client_id=sample_user_data_acdc["client_id"],
+                user_id=sample_user_data_acdc["user_id"],
                 callback_function=session.get_data,
             )
 
@@ -67,7 +67,7 @@ class TestACDCSessionInitialization:
             BlackBoxSession(
                 eval_input_batch=mock_eval_function_acdc,
                 token="invalid_token",
-                client_id="test_acdc_client",
+                user_id="test_acdc_client",
             )
 
 
@@ -93,7 +93,7 @@ class TestACDCDataProcessing:
             session = BlackBoxSession(
                 eval_input_batch=mock_eval_function_acdc,
                 token=valid_token,
-                client_id=sample_user_data_acdc["client_id"],
+                user_id=sample_user_data_acdc["user_id"],
             )
 
             # Process the data batch
@@ -126,7 +126,7 @@ class TestACDCDataProcessing:
             session = BlackBoxSession(
                 eval_input_batch=mock_eval_function_acdc,
                 token=valid_token,
-                client_id=sample_user_data_acdc["client_id"],
+                user_id=sample_user_data_acdc["user_id"],
             )
 
             # Create a batch with correct ACDC dimensions
@@ -174,7 +174,7 @@ class TestACDCDataProcessing:
             session = BlackBoxSession(
                 eval_input_batch=acdc_eval_with_validation,
                 token=valid_token,
-                client_id=sample_user_data_acdc["client_id"],
+                user_id=sample_user_data_acdc["user_id"],
             )
 
             # Process batch
@@ -207,7 +207,7 @@ class TestACDCEndToEnd:
             session = BlackBoxSession(
                 eval_input_batch=mock_eval_function_acdc,
                 token=valid_token,
-                client_id=sample_user_data_acdc["client_id"],
+                user_id=sample_user_data_acdc["user_id"],
             )
 
             # Simulate processing multiple batches
@@ -273,7 +273,7 @@ class TestACDCEndToEnd:
             session = BlackBoxSession(
                 eval_input_batch=eval_input_batch,
                 token=valid_token,
-                client_id=sample_user_data_acdc["client_id"],
+                user_id=sample_user_data_acdc["user_id"],
             )
 
             # Create and process a batch
@@ -313,7 +313,7 @@ class TestACDCErrorHandling:
             session = BlackBoxSession(
                 eval_input_batch=mock_eval_function_acdc,
                 token=valid_token,
-                client_id=sample_user_data_acdc["client_id"],
+                user_id=sample_user_data_acdc["user_id"],
             )
 
             # Create batch with wrong total size (not divisible by 256*256*1)
@@ -351,7 +351,7 @@ class TestACDCErrorHandling:
             session = BlackBoxSession(
                 eval_input_batch=failing_eval,
                 token=valid_token,
-                client_id=sample_user_data_acdc["client_id"],
+                user_id=sample_user_data_acdc["user_id"],
             )
 
             # Should raise the inference error

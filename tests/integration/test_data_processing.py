@@ -180,7 +180,7 @@ class TestBlackBoxSessionDataProcessing(IntegrationTestBase):
             session = BlackBoxSession(
                 eval_input_batch=mock_eval_function,
                 token=valid_token,
-                client_id=sample_user_data["client_id"],
+                user_id=sample_user_data["user_id"],
             )
 
             valid_batch = ProtobufFixtures.create_image_batch(batch_size=1)
