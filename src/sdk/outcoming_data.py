@@ -23,7 +23,7 @@ class OutcomingData:
 
         Args:
             middleware: Middleware instance for sending messages
-            user_id: Client identifier for queue naming
+            user_id: User identifier for queue naming
         """
         self.middleware = middleware
         self.user_id = user_id
