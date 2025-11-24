@@ -33,6 +33,16 @@ class BlackBoxSession:
             client_id: Client identifier
         """
         initialize_logging("INFO")
+        self._middleware = None
+        self._client_id = client_id
+        self._inputs_format = None
+        self._incoming_data = None
+        self._outcoming_data = None
+        
+        self._build_state(eval_input_batch, token, client_id)
+        
+        
+    def _build_state(self, eval_input_batch, token, client_id):
         try:
             # Connect - Handle authentication, user info, and middleware setup
             connect = Connect(token=token, client_id=client_id)
@@ -48,7 +58,7 @@ class BlackBoxSession:
                 )
 
             # Store parsed format and middleware
-            self._client_id = client_id
+            self._client_id = self._client_id
             self._inputs_format = inputs_format
             self._middleware = middleware
 

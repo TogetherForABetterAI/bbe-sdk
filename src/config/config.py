@@ -1,7 +1,7 @@
 import os
 
 
-CONNECTION_SERVICE_BASE_URL = f"http://connection-service:8000"
+CONNECTION_SERVICE_BASE_URL = f"http://connection-service:8080"
 
 
 def initialize_config():

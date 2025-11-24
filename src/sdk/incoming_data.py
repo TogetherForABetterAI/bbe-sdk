@@ -31,6 +31,7 @@ class IncomingData:
         self.inputs_format = inputs_format
         self.on_message_callback = on_message_callback
         self.client_id = client_id
+        logging.info(f"Initialized IncomingData for client_id: {client_id}")
         self.income_queue = f"{client_id}_dispatcher_queue"
         self._processed_batch_indices = (
             set()
@@ -78,9 +79,14 @@ class IncomingData:
         data_array = self._reshape_data(data_array)
         data_array = self._transpose_if_needed(data_array)
 
+        logging.info(
+            f"action: data_ready_for_inference | result: success | data_array_shape: {data_array.shape}"
+        )
         # Invoke user callback for inference
+        predictions = []    
         try:
-            predictions = self.on_message_callback(data_array)
+            for image in data_array:
+                predictions.append(self.on_message_callback(image))
         except Exception as e:
             logging.error(f"action: model_inference | result: fail | error: {e}")
             raise
@@ -125,15 +131,7 @@ class IncomingData:
     def _reshape_data(self, data_array: np.ndarray) -> np.ndarray:
         """
         Reshape data array according to expected format.
-
-        Args:
-            data_array: Flat numpy array
-
-        Returns:
-            Reshaped numpy array
-
-        Raises:
-            ValueError: If reshaping fails or data size is incompatible
+        Fully robust: handles 2D, 3D, CHW, HWC, and avoids invalid squeezes.
         """
         data_size = np.prod(self.inputs_format.shape)
         num_elements = data_array.size
@@ -159,30 +157,17 @@ class IncomingData:
 
         return data_array
 
+
     def _transpose_if_needed(self, data_array: np.ndarray) -> np.ndarray:
-        """
-        Transpose data from HWC to CHW format for PyTorch models if needed.
+        # only transpose if format is HWC (i.e., last dim = channels)
+        # MNIST is CHW, so shape is (batch, 1, 28, 28) → NO transponer
+        if len(data_array.shape) == 4:
+            H, W = data_array.shape[1], data_array.shape[2]
+            C = data_array.shape[3] if data_array.shape[-1] in [1, 3] else None
 
-        Args:
-            data_array: Numpy array in (batch, H, W, C) format
-
-        Returns:
-            Transposed numpy array in (batch, C, H, W) format if applicable
-
-        Raises:
-            ValueError: If transposition fails
-        """
-        # Convert from HWC to CHW format for PyTorch models
-        # If shape is (batch, H, W, C) and C is 1 or 3, transpose to (batch, C, H, W)
-        if len(data_array.shape) == 4 and data_array.shape[-1] in [1, 3]:
-            try:
-                # Transpose from (batch, H, W, C) to (batch, C, H, W)
+            # detect HWC only if last dim is channels
+            if data_array.shape[-1] in [1, 3] and H != 1:
                 data_array = np.transpose(data_array, (0, 3, 1, 2))
-                logging.debug(
-                    f"action: transpose_to_chw | result: success | final_shape: {data_array.shape}"
-                )
-            except Exception as e:
-                logging.error(f"action: transpose_to_chw | result: fail | error: {e}")
-                raise ValueError(f"Failed to transpose data to CHW format: {e}")
 
         return data_array
+
