@@ -44,7 +44,7 @@ class Connect:
 
         Args:
             token: Authentication token
-            user_id: Client identifier
+            user_id: User identifier
             base_url: Base URL for the users service (defaults to config value)
             http_client: HTTP client for requests (for testing, defaults to requests module)
             middleware_factory: Factory function to create middleware (for testing)

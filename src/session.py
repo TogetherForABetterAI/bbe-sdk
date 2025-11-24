@@ -30,9 +30,18 @@ class BlackBoxSession:
         Args:
             eval_input_batch: User-provided callback function for model inference
             token: Authentication token
-            user_id: Client identifier
+            user_id: User identifier
         """
         initialize_logging("INFO")
+        self._middleware = None
+        self._user_id = user_id
+        self._inputs_format = None
+        self._incoming_data = None
+        self._outcoming_data = None
+
+        self._build_state(eval_input_batch, token, user_id)
+
+    def _build_state(self, eval_input_batch, token, user_id):
         try:
             # Connect - Handle authentication, user info, and middleware setup
             connect = Connect(token=token, user_id=user_id)

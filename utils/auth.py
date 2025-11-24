@@ -10,22 +10,21 @@ import uuid
 import requests
 from typing import Optional
 
-
-def get_auth_token(user_id: str) -> Optional[str]:
+def get_auth_token(username: str) -> Optional[str]:
     """
     Get authentication token for a client.
 
     Args:
-        user_id: The client identifier
+        username: The client identifier
 
     Returns:
         Authentication token if successful, None otherwise
     """
     try:
-        print(f"Obtaining token for user_id: {user_id}...")
+        print(f"Obtaining token for username: {username}...")
         response = requests.post(
             f"http://users-service:8000/tokens/create",
-            json={"user_id": user_id},
+            json={"username": username},
             headers={"Content-Type": "application/json"},
             timeout=5,
         )
@@ -133,7 +132,7 @@ def get_or_create_user(
         print(f"   User ID: {user_id}")
 
     # Get token for new user
-    token = get_auth_token(user_id)
+    token = get_auth_token(username)
 
     if not token:
         raise ValueError("Failed to obtain valid authentication token.")
