@@ -27,7 +27,7 @@ class OutcomingData:
         """
         self.middleware = middleware
         self.user_id = user_id
-        self.outcome_queue = f"{user_id}_calibration_queue"
+        self.outcome_queue = f"{user_id}_outputs_cal_queue"
 
     def send_predictions(
         self,

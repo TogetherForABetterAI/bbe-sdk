@@ -1,0 +1,19 @@
+name: sdk-mnist
+services:
+  bbe_sdk_mnist:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bbe_sdk_mnist
+    command: python main.py
+    environment:
+      - MODEL_TYPE=mnist
+    volumes:
+      - ./example_model:/app/example_model:ro
+      - ./user_id_mnist.txt:/app/user_id_mnist.txt
+    networks:
+      - tpp-network
+
+networks:
+  tpp-network:
+    external: true

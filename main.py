@@ -6,7 +6,7 @@ Black Box Evaluation (BBE) system for calibration assessment.
 """
 
 import torch
-from bbe_sdk import BlackBoxSession
+from src.session import BlackBoxSession
 from example_model.image_classifier import ImageClassifier
 from utils.auth import get_or_create_user, create_blackbox_interface
 
@@ -48,6 +48,7 @@ def main():
             outputs_format=OUTPUTS_FORMAT,
             user_id_file="user_id_mnist.txt",  # Separate file for MNIST
         )
+        
     except Exception as e:
         print(f"\n❌ Failed to authenticate: {e}")
         return
@@ -62,33 +63,18 @@ def main():
     print("Starting Black Box Evaluation Session")
     print("=" * 60)
 
-    try:
-        session = BlackBoxSession(eval_input_batch, token, user_id)
-        print("\nSession started successfully.")
-        print("  The model will now receive batches of MNIST images")
-        print("  for classification and calibration evaluation.")
-        print("\n  Press Ctrl+C to stop...")
+    session = BlackBoxSession(eval_input_batch, token, user_id)
+    print("\nSession started successfully.")
+    print("  The model will now receive batches of MNIST images")
+    print("  for classification and calibration evaluation.")
+    print("\n  Press Ctrl+C to stop...")
 
-        # Keep the session running
-        # The session will automatically process batches as they arrive
-        import time
+    # Keep the session running
+    # The session will automatically process batches as they arrive
+    import time
 
-        while True:
-            time.sleep(1)
-
-    except KeyboardInterrupt:
-        print("\n\nInterrupted by user.")
-        print("   Shutting down gracefully...")
-    except Exception as e:
-        print(f"\n❌ Error during evaluation session: {e}")
-        import traceback
-
-        traceback.print_exc()
-        return
-
-    print("\n" + "=" * 60)
-    print("Evaluation session completed.")
-    print("=" * 60 + "\n")
+    while True:
+        time.sleep(1)
 
 
 if __name__ == "__main__":

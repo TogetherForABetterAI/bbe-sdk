@@ -140,7 +140,6 @@ class Connect:
                 port=self._rabbitmq_credentials.port,
                 username=self._rabbitmq_credentials.username,
                 password=self._rabbitmq_credentials.password,
-                routing_key=self.user_id,
             )
             logging.info(
                 f"action: create_middleware | result: success | user_id: {self.user_id}"

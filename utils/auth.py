@@ -78,7 +78,7 @@ def create_user(
             timeout=5,
         )
         response.raise_for_status()
-        user_id = response.json().get("user_id")
+        user_id = response.json().get("id")
         if not user_id:
             raise ValueError("Response does not contain a valid user_id.")
         print(f"User created successfully. user_id: {user_id}")
