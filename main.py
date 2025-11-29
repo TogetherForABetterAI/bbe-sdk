@@ -5,6 +5,7 @@ This script sets up the MNIST classification model and connects it to the
 Black Box Evaluation (BBE) system for calibration assessment.
 """
 
+import logging
 import torch
 from src.session import BlackBoxSession
 from example_model.image_classifier import ImageClassifier
@@ -62,7 +63,10 @@ def main():
     print("=" * 60)
     print("Starting Black Box Evaluation Session")
     print("=" * 60)
-
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
     session = BlackBoxSession(eval_input_batch, token, user_id)
     print("\nSession started successfully.")
     print("  The model will now receive batches of MNIST images")

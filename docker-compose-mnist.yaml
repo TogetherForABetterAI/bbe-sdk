@@ -1,10 +1,10 @@
 name: sdk-mnist
 services:
-  bbe_sdk_mnist:
+  bbe_sdk_mnist_1:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: bbe_sdk_mnist
+    container_name: bbe_sdk_mnist1
     command: python main.py
     environment:
       - MODEL_TYPE=mnist

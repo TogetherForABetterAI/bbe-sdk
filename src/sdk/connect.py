@@ -30,15 +30,15 @@ class Connect:
     The Connect component encapsulates all connection logic.
     Methods are public and should be called explicitly from the session.
     """
-
     def __init__(
-        self,
-        token: str,
-        user_id: str,
-        base_url: Optional[str] = None,  # For testing purposes
-        http_client: Optional[Callable] = None,  # For testing purposes
-        middleware_factory: Optional[Callable] = None,  # For testing purposes
-    ):
+            self,
+            token: str,
+            user_id: str,
+            base_url: Optional[str] = None,
+            http_client: Optional[Callable] = None,
+            middleware_factory: Optional[Callable] = None,
+            logger: Optional[logging.Logger] = None,  # <--- 1. INJECT LOGGER
+        ):
         """
         Initialize the connection component.
 
@@ -57,6 +57,12 @@ class Connect:
         self._rabbitmq_credentials = None
         self._middleware = None
 
+        base_logger = logger or logging.getLogger(__name__)
+        self.logger = logging.LoggerAdapter(
+            base_logger, 
+            {'user_id': user_id, 'component': 'Connect'}
+        )   
+
     def connect_to_service(self) -> ConnectResponse:
         """
         Establish connection with the server and retrieve RabbitMQ credentials.
@@ -68,23 +74,32 @@ class Connect:
             InvalidTokenError: If connection establishment fails
             RuntimeError: If credentials are missing in response
         """
+        url = f"{self.base_url}/users/connect"
         try:
             connect_resp = self._http_client.post(
-                f"{self.base_url}/users/connect",
+                url,
                 json={"user_id": self.user_id, "token": self.token},
                 headers={"Content-Type": "application/json"},
                 timeout=5,
             )
         except Exception as e:
+            self.logger.error("Network error connecting to auth service", exc_info=True)
             raise InvalidTokenError(f"Failed to connect to server: {e}")
 
         if connect_resp.status_code != 200:
+            self.logger.error("Auth service returned non-200 status", extra={
+                'status_code': connect_resp.status_code,
+                'response_text': connect_resp.text
+            })
             raise InvalidTokenError(
                 f"Connection service returned status {connect_resp.status_code}: {connect_resp.text}"
             )
 
         connect_data = connect_resp.json()
         if connect_data.get("status") != "success":
+            self.logger.warning("Connection refused by logic", extra={
+                'api_message': connect_data.get('message')
+            })
             raise InvalidTokenError(
                 f"Connection failed: {connect_data.get('message', 'Unknown error')}"
             )
@@ -92,6 +107,9 @@ class Connect:
         # Extract RabbitMQ credentials from response
         credentials = connect_data.get("credentials")
         if not credentials:
+            self.logger.critical("Protocol Error: Response missing credentials", extra={
+                'response_keys': list(connect_data.keys())
+            })
             raise RuntimeError("Connection response missing RabbitMQ credentials")
 
         rabbitmq_credentials = RabbitMQCredentials(
@@ -112,11 +130,10 @@ class Connect:
             inputs_format=connect_data.get("inputs_format", ""),
         )
 
-        logging.info(
-            f"action: connect_to_service | result: success | user_id: {self.user_id} | "
-            f"message: {response.message} | rabbitmq_host: {rabbitmq_credentials.host}"
-        )
-
+        self.logger.info("Service authentication successful", extra={
+                    'rabbitmq_host': rabbitmq_credentials.host,
+                    'api_message': response.message
+                })
         return response
 
     def create_middleware(self):
@@ -141,12 +158,12 @@ class Connect:
                 username=self._rabbitmq_credentials.username,
                 password=self._rabbitmq_credentials.password,
             )
-            logging.info(
-                f"action: create_middleware | result: success | user_id: {self.user_id}"
-            )
+            self.logger.info("Middleware initialized", extra={
+                            'host': self._rabbitmq_credentials.host
+                        })
             return self._middleware
         except Exception as e:
-            logging.error(f"action: create_middleware | result: fail | error: {e}")
+            self.logger.exception("Failed to initialize Middleware connection")
             raise RuntimeError(f"Failed to create middleware connection: {e}")
 
     def try_connect(self) -> tuple:
@@ -165,12 +182,10 @@ class Connect:
             InvalidTokenError: If authentication or connection fails
             RuntimeError: If any step in the connection process fails
         """
-        logging.info(
-            f"action: try_connect | status: starting | user_id: {self.user_id}"
-        )
+        self.logger.debug("Starting connection flow")
 
         connect_response = self.connect_to_service()
         middleware = self.create_middleware()
 
-        logging.info(f"action: try_connect | status: success | user_id: {self.user_id}")
+        self.logger.info("Connection flow completed successfully")
         return middleware, connect_response.inputs_format

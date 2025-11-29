@@ -3,7 +3,7 @@ OutcomingData component: Handles sending predictions back to the service.
 """
 
 import logging
-from typing import Union, List
+from typing import Optional, Union, List
 import numpy as np
 from src.pb.outcomingData import sdk_outcoming_data_pb2
 
@@ -17,7 +17,7 @@ class OutcomingData:
     - Send predictions through middleware
     """
 
-    def __init__(self, middleware, user_id: str):
+    def __init__(self, middleware, user_id: str, logger: Optional[logging.Logger] = None):
         """
         Initialize the outcoming data handler.
 
@@ -28,6 +28,11 @@ class OutcomingData:
         self.middleware = middleware
         self.user_id = user_id
         self.outcome_queue = f"{user_id}_outputs_cal_queue"
+        base_logger = logger or logging.getLogger(__name__)
+        self.logger = logging.LoggerAdapter(
+            base_logger, 
+            {'user_id': user_id, 'component': 'OutcomingData'}
+        )
 
     def send_predictions(
         self,
@@ -48,32 +53,59 @@ class OutcomingData:
         Raises:
             Exception: If sending fails
         """
-        # Create protobuf message
-        pred = sdk_outcoming_data_pb2.Predictions()
+        
+        pred_shape = "N/A"
+        if isinstance(predictions, np.ndarray):
+            pred_shape = str(predictions.shape)
+        elif isinstance(predictions, list):
+            pred_shape = f"List[len={len(predictions)}]"
 
-        for prob in predictions:
-            pred_list = sdk_outcoming_data_pb2.PredictionList()
-            pred_list.values.extend(prob)
-            pred.pred.append(pred_list)
+        self.logger.debug("Formatting predictions", extra={
+            'batch_index': batch_index,
+            'data_type': type(predictions).__name__,
+            'shape': pred_shape
+        })
+        try:
+            # Create protobuf message
+            pred = sdk_outcoming_data_pb2.Predictions()
 
-        pred.eof = is_last_batch
-        pred.batch_index = batch_index
-        pred.session_id = session_id
+            for prob in predictions:
+                pred_list = sdk_outcoming_data_pb2.PredictionList()
+                pred_list.values.extend(prob)
+                pred.pred.append(pred_list)
 
-        # Serialize and send
-        batch = pred.SerializeToString()
+            pred.eof = is_last_batch
+            pred.batch_index = batch_index
+            pred.session_id = session_id
 
-        logging.info(
-            f"action: send_probs | result: success | size: {len(batch)} | "
-            f"eof: {pred.eof} | session_id: {session_id} | queue: {self.outcome_queue}"
-        )
+            # Serialize and send
+            batch = pred.SerializeToString()
+        except Exception as e:
 
-        # Send directly to the client's calibration queue
-        self.middleware.publish(message=batch, queue_name=self.outcome_queue)
+            self.logger.error("Failed to serialize predictions. Check output format.", extra={
+                'hint': 'Ensure callback returns a list of lists or 2D numpy array',
+                'error': str(e)
+            })
+            raise 
+        
+        self.logger.info("Sending predictions", extra={
+            'batch_index': batch_index,
+            'payload_size_bytes': len(batch),
+            'is_eof': is_last_batch,
+            'queue': self.outcome_queue
+        })
+        try:
+            # Send directly to the client's calibration queue
+            self.middleware.publish(message=batch, queue_name=self.outcome_queue)
+        except Exception as e:
+            self.logger.error("Failed to publish message", exc_info=True, extra={
+                'queue': self.outcome_queue
+            })
+            raise
 
-        # Stop consuming if this is the last batch
         if is_last_batch:
-            logging.info(
-                f"Last batch sent. Stopping consumption for session: {session_id}"
-            )
+            self.logger.info("Session complete. Stopping consumption.", extra={
+                'session_id': session_id,
+                'action': 'stop_consuming'
+            })
             self.middleware.stop_consuming()

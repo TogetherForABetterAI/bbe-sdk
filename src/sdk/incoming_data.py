@@ -3,8 +3,9 @@ IncomingData component: Handles receiving and processing incoming data batches.
 """
 
 import logging
+from time import time
 import numpy as np
-from typing import Callable, Any
+from typing import Callable, Any, Optional
 from src.pb.incomingData.data_batch_pb2 import DataBatchUnlabeled
 
 
@@ -19,7 +20,7 @@ class IncomingData:
     - Invoke user callback for inference
     """
 
-    def __init__(self, inputs_format, on_message_callback: Callable, user_id: str):
+    def __init__(self, inputs_format, on_message_callback: Callable, user_id: str, logger: Optional[logging.Logger] = None):
         """
         Initialize the incoming data handler.
 
@@ -35,6 +36,11 @@ class IncomingData:
         self._processed_batch_indices = (
             set()
         )  # Track processed batch indices to avoid duplicates
+        base_logger = logger or logging.getLogger(__name__)
+        self.logger = logging.LoggerAdapter(
+            base_logger, 
+            {'user_id': user_id, 'component': 'IncomingData'}
+        )
 
     def process_data_batch(self, body: bytes) -> tuple[np.ndarray, bool, int, str]:
         """
@@ -50,23 +56,28 @@ class IncomingData:
         Raises:
             ValueError: If data format is invalid or processing fails
         """
-        # Parse protobuf message
-        data_batch = DataBatchUnlabeled()
-        data_batch.ParseFromString(body)
+        
+        try: 
+            data_batch = DataBatchUnlabeled()
+            data_batch.ParseFromString(body)
+        except Exception as e:
+            self.logger.error("Protobuf parsing failed", exc_info=True, extra={'body_size': len(body)})
+            raise ValueError(f"Failed to parse DataBatchUnlabeled: {e}")
 
         # Check if this batch was already processed
         if data_batch.batch_index in self._processed_batch_indices:
-            logging.warning(
-                f"action: receive_data_batch | result: duplicate | batch_index: {data_batch.batch_index} | "
-                f"session_id: {data_batch.session_id} | Skipping duplicate batch"
-            )
+            self.logger.warning("Duplicate batch detected - skipping", extra={
+                'batch_index': data_batch.batch_index,
+                'session_id': data_batch.session_id,
+                'action': 'deduplication_skip'
+            })
             return None  # Return None to indicate duplicate batch
 
-        logging.info(
-            f"action: receive_data_batch | result: success | size: {len(body)} | "
-            f"eof: {data_batch.is_last_batch} | session_id: {data_batch.session_id} | "
-            f"batch_index: {data_batch.batch_index}"
-        )
+        self.logger.info("Received tensor batch", extra={
+            'batch_index': data_batch.batch_index,
+            'size_bytes': len(body),
+            'is_eof': data_batch.is_last_batch
+        })
 
         if not self.inputs_format:
             raise ValueError(
@@ -75,24 +86,26 @@ class IncomingData:
 
         # Process the data
         data_array = self._parse_data(data_batch.data)
-        logging.debug(f"action: after_parse | shape: {data_array.shape}")
-
+        self.logger.debug("Raw data parsed", extra={'shape': str(data_array.shape)})
+        
         data_array = self._reshape_data(data_array)
-        logging.debug(f"action: after_reshape | shape: {data_array.shape}")
-
+        self.logger.debug("Data reshaped", extra={'shape': str(data_array.shape)})
+        
         data_array = self._transpose_if_needed(data_array)
-        logging.debug(f"action: after_transpose | shape: {data_array.shape}")
-
-        logging.info(
-            f"action: data_ready_for_inference | result: success | data_array_shape: {data_array.shape}"
-        )
+        self.logger.debug("Data ready for inference", extra={'shape': str(data_array.shape)})
+        
         # Invoke user callback for inference
         predictions = []
         try:
             for image in data_array:
                 predictions.append(self.on_message_callback(image))
+            
+            
         except Exception as e:
-            logging.error(f"action: model_inference | result: fail | error: {e}")
+            self.logger.error("User model callback failed", exc_info=True, extra={
+                            'batch_index': data_batch.batch_index,
+                            'error_type': type(e).__name__
+                        })            
             raise
 
         # Mark this batch as processed
@@ -125,7 +138,10 @@ class IncomingData:
         try:
             data_array = np.frombuffer(data, dtype=self.inputs_format.dtype)
         except Exception as e:
-            logging.error(f"action: parse_data_buffer | result: fail | error: {e}")
+            self.logger.error("Buffer parsing failed", extra={
+                            'expected_dtype': str(self.inputs_format.dtype),
+                            'buffer_len': len(data)
+                        })            
             raise ValueError(
                 f"Failed to parse data buffer with dtype {self.inputs_format.dtype}: {e}"
             )
@@ -142,21 +158,21 @@ class IncomingData:
         num_samples = num_elements // data_size
 
         if num_samples * data_size != num_elements:
-            raise ValueError(
-                f"Data size incompatible with expected format. "
-                f"Expected elements per sample: {data_size}, "
-                f"total elements: {num_elements}, "
-                f"calculated samples: {num_samples}, "
-                f"remainder: {num_elements % data_size}"
+            error_msg = (
+                f"Data size incompatible. Total elements: {num_elements}, "
+                f"Element size: {data_size}, Remainder: {num_elements % data_size}"
             )
+            self.logger.error("Reshape impossible", extra={
+                'total_elements': num_elements,
+                'target_shape': str(self.inputs_format.shape),
+                'remainder': num_elements % data_size
+            })
+            raise ValueError(error_msg)
 
         try:
             data_array = data_array.reshape((num_samples, *self.inputs_format.shape))
-            logging.debug(
-                f"action: reshape_data | result: success | final_shape: {data_array.shape}"
-            )
         except Exception as e:
-            logging.error(f"action: reshape_data | result: fail | error: {e}")
+            self.logger.error("Reshape failed unexpectedly", exc_info=True)          
             raise ValueError(f"Failed to reshape data to expected format: {e}")
 
         return data_array
@@ -170,6 +186,7 @@ class IncomingData:
 
             # detect HWC only if last dim is channels
             if data_array.shape[-1] in [1, 3] and H != 1:
+                self.logger.debug("Transposing HWC to CHW", extra={'original_shape': str(data_array.shape)})
                 data_array = np.transpose(data_array, (0, 3, 1, 2))
 
         return data_array
