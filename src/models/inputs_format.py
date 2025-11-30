@@ -1,13 +1,31 @@
+"""
+Input format models and parsing utilities.
+"""
+
 import numpy as np
-from typing import Optional, NamedTuple, Union
+from typing import Optional, NamedTuple
 
 
 class InputsFormat(NamedTuple):
+    """Format specification for model inputs."""
+
     dtype: np.dtype
     shape: tuple[int, ...]
 
 
 def parse_inputs_format(inputs_format_str: str) -> Optional[InputsFormat]:
+    """
+    Parse input format string into InputsFormat object.
+
+    Args:
+        inputs_format_str: String representation of shape, e.g., "(1, 224, 224, 3)"
+
+    Returns:
+        InputsFormat object with parsed dtype and shape, or None if empty
+
+    Raises:
+        ValueError: If the format string is invalid
+    """
     if not inputs_format_str or not inputs_format_str.strip():
         return None
 

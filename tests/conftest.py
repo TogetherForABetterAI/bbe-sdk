@@ -2,16 +2,16 @@ import pytest
 import numpy as np
 from unittest.mock import Mock, patch
 import responses
-from bbe_sdk.utils.data import InputsFormat
-from bbe_sdk.pb.dataset_service import dataset_service_pb2
-from bbe_sdk.proto import calibration_pb2
+from src.config.data import InputsFormat
+from src.pb.dataset_service import dataset_service_pb2
+from src.pb.outcomingData import calibration_pb2
 
 
 @pytest.fixture
 def sample_user_data():
     """Mock para mnist"""
     return {
-        "client_id": "test_client_123",
+        "user_id": "test_client_123",
         "username": "testuser",
         "email": "test@example.com",
         "model_type": "classification",
@@ -24,7 +24,7 @@ def sample_user_data():
 def sample_user_data_tabular():
     """Mock para datos tabulares"""
     return {
-        "client_id": "test_client_456",
+        "user_id": "test_client_456",
         "username": "testuser2",
         "email": "test2@example.com",
         "model_type": "regression",
@@ -37,7 +37,7 @@ def sample_user_data_tabular():
 def sample_user_data_acdc():
     """Mock para ACDC cardiac segmentation"""
     return {
-        "client_id": "test_client_acdc_789",
+        "user_id": "test_client_acdc_789",
         "username": "testuser_acdc",
         "email": "test_acdc@example.com",
         "model_type": "acdc",
@@ -69,28 +69,28 @@ def sample_user_data_different_shapes():
     """Lista de datos de usuario con diferentes shapes para testing"""
     return [
         {
-            "client_id": "test_client_rgb",
+            "user_id": "test_client_rgb",
             "username": "testuser_rgb",
             "model_type": "classification",
             "inputs_format": "(3,224,224)",  # RGB image
             "outputs_format": "(1000,)",
         },
         {
-            "client_id": "test_client_grayscale",
+            "user_id": "test_client_grayscale",
             "username": "testuser_gray",
             "model_type": "classification",
             "inputs_format": "(1,256,256)",  # Grayscale image
             "outputs_format": "(5,)",
         },
         {
-            "client_id": "test_client_3d",
+            "user_id": "test_client_3d",
             "username": "testuser_3d",
             "model_type": "regression",
             "inputs_format": "(16,16,16)",  # 3D data
             "outputs_format": "(1,)",
         },
         {
-            "client_id": "test_client_vector",
+            "user_id": "test_client_vector",
             "username": "testuser_vector",
             "model_type": "classification",
             "inputs_format": "(784,)",  # Flattened 28x28

@@ -22,7 +22,7 @@ class UsersServerMock:
 
         responses.add(
             responses.GET,
-            f"{cls.BASE_URL}/users/{user_data['client_id']}",
+            f"{cls.BASE_URL}/users/{user_data['user_id']}",
             json=user_data,
             status=200,
         )
@@ -36,7 +36,7 @@ class UsersServerMock:
         )
 
     @classmethod
-    def setup_invalid_token(cls, client_id: str = "test_client"):
+    def setup_invalid_token(cls, user_id: str = "test_client"):
         """Mock para token inválido"""
         responses.add(
             responses.POST,
@@ -55,7 +55,7 @@ class UsersServerMock:
         )
 
     @classmethod
-    def setup_user_info_connection_error(cls, client_id: str = "test_client"):
+    def setup_user_info_connection_error(cls, user_id: str = "test_client"):
         """Mock para error de conexión en obtención de info de usuario"""
         responses.add(
             responses.POST,
@@ -66,7 +66,7 @@ class UsersServerMock:
 
         responses.add(
             responses.GET,
-            f"{cls.BASE_URL}/users/{client_id}",
+            f"{cls.BASE_URL}/users/{user_id}",
             body=ConnectionError("Connection failed to users server"),
         )
 
@@ -81,7 +81,7 @@ class UsersServerMock:
         )
 
     @classmethod
-    def setup_user_info_server_error(cls, client_id: str = "test_client"):
+    def setup_user_info_server_error(cls, user_id: str = "test_client"):
         """Mock para error del servidor en obtención de info de usuario"""
         responses.add(
             responses.POST,
@@ -92,13 +92,13 @@ class UsersServerMock:
 
         responses.add(
             responses.GET,
-            f"{cls.BASE_URL}/users/{client_id}",
+            f"{cls.BASE_URL}/users/{user_id}",
             json={"error": "User not found"},
             status=404,
         )
 
     @classmethod
-    def setup_user_with_invalid_format(cls, client_id: str = "test_client"):
+    def setup_user_with_invalid_format(cls, user_id: str = "test_client"):
         """Mock para usuario con formato de entrada inválido"""
         responses.add(
             responses.POST,
@@ -108,7 +108,7 @@ class UsersServerMock:
         )
 
         user_data = {
-            "client_id": client_id,
+            "user_id": user_id,
             "username": "testuser",
             "email": "test@example.com",
             "model_type": "classification",
@@ -118,13 +118,13 @@ class UsersServerMock:
 
         responses.add(
             responses.GET,
-            f"{cls.BASE_URL}/users/{client_id}",
+            f"{cls.BASE_URL}/users/{user_id}",
             json=user_data,
             status=200,
         )
 
     @classmethod
-    def setup_user_with_missing_format(cls, client_id: str = "test_client"):
+    def setup_user_with_missing_format(cls, user_id: str = "test_client"):
         """Mock para usuario sin inputs format"""
         responses.add(
             responses.POST,
@@ -134,7 +134,7 @@ class UsersServerMock:
         )
 
         user_data = {
-            "client_id": client_id,
+            "user_id": user_id,
             "username": "testuser",
             "email": "test@example.com",
             "model_type": "classification",
@@ -144,7 +144,7 @@ class UsersServerMock:
 
         responses.add(
             responses.GET,
-            f"{cls.BASE_URL}/users/{client_id}",
+            f"{cls.BASE_URL}/users/{user_id}",
             json=user_data,
             status=200,
         )

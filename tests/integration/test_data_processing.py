@@ -1,9 +1,10 @@
+from src.pb.outcomingData import calibration_pb2
 import pytest
 import responses
 import numpy as np
 from unittest.mock import patch, Mock, MagicMock
-from bbe_sdk.session import BlackBoxSession
-from bbe_sdk.proto import dataset_pb2, calibration_pb2
+from src.session import BlackBoxSession
+from src.proto import dataset_pb2
 from tests.mocks.auth_server_mock import UsersServerMock
 from tests.mocks.middleware_mock import MiddlewareFactory, MiddlewareMock
 from tests.mocks.protobuf_fixtures import ProtobufFixtures
@@ -179,7 +180,7 @@ class TestBlackBoxSessionDataProcessing(IntegrationTestBase):
             session = BlackBoxSession(
                 eval_input_batch=mock_eval_function,
                 token=valid_token,
-                client_id=sample_user_data["client_id"],
+                user_id=sample_user_data["user_id"],
             )
 
             valid_batch = ProtobufFixtures.create_image_batch(batch_size=1)

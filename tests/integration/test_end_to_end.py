@@ -4,7 +4,8 @@ import numpy as np
 import time
 import threading
 from unittest.mock import patch, Mock
-from bbe_sdk.session import BlackBoxSession, InvalidTokenError
+from src.session import BlackBoxSession
+from src.models.errors import InvalidTokenError
 from tests.mocks.auth_server_mock import UsersServerMock
 from tests.mocks.middleware_mock import MiddlewareFactory, MiddlewareMock
 from tests.mocks.protobuf_fixtures import ProtobufFixtures
@@ -32,7 +33,7 @@ class TestBlackBoxSessionEndToEnd(IntegrationTestBase):
             sample_user_data, valid_token, image_classifier
         )
 
-        assert session._client_id == sample_user_data["client_id"]
+        assert session._user_id == sample_user_data["user_id"]
         assert session._inputs_format.shape == (1, 28, 28)
         assert session._inputs_format.dtype == np.float32
 
@@ -235,7 +236,7 @@ class TestBlackBoxSessionEndToEnd(IntegrationTestBase):
                 session = BlackBoxSession(
                     eval_input_batch=dummy_eval_function,
                     token=valid_token,
-                    client_id=sample_user_data["client_id"],
+                    user_id=sample_user_data["user_id"],
                 )
 
     @responses.activate
@@ -328,7 +329,7 @@ class TestBlackBoxSessionEndToEnd(IntegrationTestBase):
                 user_data, valid_token, flexible_eval_function
             )
 
-            from bbe_sdk.utils.data import parse_inputs_format
+            from src.config.data import parse_inputs_format
 
             expected_format = parse_inputs_format(user_data["inputs_format"])
             assert session._inputs_format.shape == expected_format.shape
@@ -336,7 +337,7 @@ class TestBlackBoxSessionEndToEnd(IntegrationTestBase):
 
             test_data = np.random.rand(2, *expected_format.shape).astype(np.float32)
 
-            from bbe_sdk.proto import dataset_pb2
+            from src.proto import dataset_pb2
 
             data_batch = dataset_pb2.DataBatch()
             data_batch.data = test_data.tobytes()

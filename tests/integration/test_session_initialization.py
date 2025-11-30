@@ -2,7 +2,8 @@ import pytest
 import responses
 import numpy as np
 from unittest.mock import patch, Mock
-from bbe_sdk.session import BlackBoxSession, InvalidTokenError
+from src.session import BlackBoxSession
+from src.models.errors import InvalidTokenError
 from tests.mocks.auth_server_mock import UsersServerMock
 from tests.mocks.middleware_mock import MiddlewareFactory
 
@@ -22,10 +23,10 @@ class TestBlackBoxSessionInitialization:
             session = BlackBoxSession(
                 eval_input_batch=mock_eval_function,
                 token=valid_token,
-                client_id=sample_user_data["client_id"],
+                user_id=sample_user_data["user_id"],
             )
 
-            assert session._client_id == sample_user_data["client_id"]
+            assert session._user_id == sample_user_data["user_id"]
             assert session._username == sample_user_data["username"]
             assert session._email == sample_user_data["email"]
             assert session._model_type == sample_user_data["model_type"]
@@ -35,7 +36,7 @@ class TestBlackBoxSessionInitialization:
             assert session._inputs_format.dtype == np.float32
 
             mock_middleware_setup.assert_called_once_with(
-                client_id=sample_user_data["client_id"],
+                user_id=sample_user_data["user_id"],
                 callback_function=session.get_data,
             )
 
@@ -60,7 +61,7 @@ class TestBlackBoxSessionInitialization:
             session = BlackBoxSession(
                 eval_input_batch=mock_eval_function_regression,
                 token=valid_token,
-                client_id=sample_user_data_tabular["client_id"],
+                user_id=sample_user_data_tabular["user_id"],
             )
 
             assert session._inputs_format.shape == (10,)
@@ -76,7 +77,7 @@ class TestBlackBoxSessionInitialization:
             BlackBoxSession(
                 eval_input_batch=mock_eval_function,
                 token="invalid_token",
-                client_id="test_client",
+                user_id="test_client",
             )
 
     @responses.activate
@@ -92,14 +93,14 @@ class TestBlackBoxSessionInitialization:
             BlackBoxSession(
                 eval_input_batch=mock_eval_function,
                 token="valid_token",
-                client_id="test_client",
+                user_id="test_client",
             )
 
     @responses.activate
     def test_user_info_connection_error(self, mock_eval_function, disable_logging):
         """Test: Error de conexión al obtener info de usuario"""
-        client_id = "test_client"
-        UsersServerMock.setup_user_info_connection_error(client_id)
+        user_id = "test_client"
+        UsersServerMock.setup_user_info_connection_error(user_id)
 
         with pytest.raises(
             InvalidTokenError, match="Failed to connect to users server"
@@ -107,7 +108,7 @@ class TestBlackBoxSessionInitialization:
             BlackBoxSession(
                 eval_input_batch=mock_eval_function,
                 token="valid_token",
-                client_id=client_id,
+                user_id=user_id,
             )
 
     @responses.activate
@@ -119,27 +120,27 @@ class TestBlackBoxSessionInitialization:
             BlackBoxSession(
                 eval_input_batch=mock_eval_function,
                 token="valid_token",
-                client_id="test_client",
+                user_id="test_client",
             )
 
     @responses.activate
     def test_user_info_server_error(self, mock_eval_function, disable_logging):
         """Test: Error del servidor al obtener info de usuario"""
-        client_id = "test_client"
-        UsersServerMock.setup_user_info_server_error(client_id)
+        user_id = "test_client"
+        UsersServerMock.setup_user_info_server_error(user_id)
 
         with pytest.raises(InvalidTokenError, match="Users server returned status 404"):
             BlackBoxSession(
                 eval_input_batch=mock_eval_function,
                 token="valid_token",
-                client_id=client_id,
+                user_id=user_id,
             )
 
     @responses.activate
     def test_invalid_input_format_empty(self, mock_eval_function, disable_logging):
         """Test: Error con formato de entrada vacío"""
-        client_id = "test_client"
-        UsersServerMock.setup_user_with_invalid_format(client_id)
+        user_id = "test_client"
+        UsersServerMock.setup_user_with_invalid_format(user_id)
 
         with pytest.raises(
             RuntimeError,
@@ -148,14 +149,14 @@ class TestBlackBoxSessionInitialization:
             BlackBoxSession(
                 eval_input_batch=mock_eval_function,
                 token="valid_token",
-                client_id=client_id,
+                user_id=user_id,
             )
 
     @responses.activate
     def test_missing_input_format(self, mock_eval_function, disable_logging):
         """Test: Error con formato de entrada faltante"""
-        client_id = "test_client"
-        UsersServerMock.setup_user_with_missing_format(client_id)
+        user_id = "test_client"
+        UsersServerMock.setup_user_with_missing_format(user_id)
 
         with pytest.raises(
             RuntimeError,
@@ -164,7 +165,7 @@ class TestBlackBoxSessionInitialization:
             BlackBoxSession(
                 eval_input_batch=mock_eval_function,
                 token="valid_token",
-                client_id=client_id,
+                user_id=user_id,
             )
 
     @responses.activate
@@ -181,7 +182,7 @@ class TestBlackBoxSessionInitialization:
                 BlackBoxSession(
                     eval_input_batch=mock_eval_function,
                     token=valid_token,
-                    client_id=sample_user_data["client_id"],
+                    user_id=sample_user_data["user_id"],
                 )
 
     @responses.activate
@@ -195,7 +196,7 @@ class TestBlackBoxSessionInitialization:
             BlackBoxSession(
                 eval_input_batch=mock_eval_function,
                 token="valid_token",
-                client_id="test_client",
+                user_id="test_client",
             )
 
     @responses.activate
@@ -209,14 +210,14 @@ class TestBlackBoxSessionInitialization:
             BlackBoxSession(
                 eval_input_batch=mock_eval_function,
                 token="valid_token",
-                client_id="test_client",
+                user_id="test_client",
             )
 
     @responses.activate
     def test_partial_user_data(self, valid_token, mock_eval_function, disable_logging):
         """Test: Datos de usuario incompletos pero válidos"""
         partial_user_data = {
-            "client_id": "test_client_partial",
+            "user_id": "test_client_partial",
             "username": "",
             "email": "",
             "model_type": "classification",
@@ -233,10 +234,10 @@ class TestBlackBoxSessionInitialization:
             session = BlackBoxSession(
                 eval_input_batch=mock_eval_function,
                 token=valid_token,
-                client_id=partial_user_data["client_id"],
+                user_id=partial_user_data["user_id"],
             )
 
-            assert session._client_id == partial_user_data["client_id"]
+            assert session._user_id == partial_user_data["user_id"]
             assert session._username == ""
             assert session._email == ""
             assert session._inputs_format is not None
@@ -255,7 +256,7 @@ class TestBlackBoxSessionInitialization:
             BlackBoxSession(
                 eval_input_batch=mock_eval_function,
                 token=valid_token,
-                client_id=sample_user_data["client_id"],
+                user_id=sample_user_data["user_id"],
             )
 
             # Expects 3 calls: token validation, user info, and users-service connect
@@ -267,7 +268,7 @@ class TestBlackBoxSessionInitialization:
 
             user_call = responses.calls[1]
             assert user_call.request.method == "GET"
-            assert f"/users/{sample_user_data['client_id']}" in user_call.request.url
+            assert f"/users/{sample_user_data['user_id']}" in user_call.request.url
 
             connect_call = responses.calls[2]
             assert connect_call.request.method == "POST"
@@ -295,15 +296,15 @@ class TestBlackBoxSessionInitialization:
                 session = BlackBoxSession(
                     eval_input_batch=mock_eval_function,
                     token=valid_token,
-                    client_id=user_data["client_id"],
+                    user_id=user_data["user_id"],
                 )
 
-                from bbe_sdk.utils.data import parse_inputs_format
+                from src.config.data import parse_inputs_format
 
                 expected_format = parse_inputs_format(user_data["inputs_format"])
                 assert session._inputs_format.shape == expected_format.shape
                 assert session._inputs_format.dtype == np.float32
-                assert session._client_id == user_data["client_id"]
+                assert session._user_id == user_data["user_id"]
                 assert session._model_type == user_data["model_type"]
 
     @responses.activate
@@ -325,7 +326,7 @@ class TestBlackBoxSessionInitialization:
             responses.reset()
 
             user_data = {
-                "client_id": "test_client_invalid",
+                "user_id": "test_client_invalid",
                 "username": "testuser",
                 "email": "test@example.com",
                 "model_type": "classification",
@@ -343,7 +344,7 @@ class TestBlackBoxSessionInitialization:
                     BlackBoxSession(
                         eval_input_batch=mock_eval_function,
                         token=valid_token,
-                        client_id=user_data["client_id"],
+                        user_id=user_data["user_id"],
                     )
 
     @responses.activate
@@ -362,7 +363,7 @@ class TestBlackBoxSessionInitialization:
             responses.reset()
 
             user_data = {
-                "client_id": f"test_client_{shape_str.replace(',', '_').replace('(', '').replace(')', '')}",
+                "user_id": f"test_client_{shape_str.replace(',', '_').replace('(', '').replace(')', '')}",
                 "username": "testuser",
                 "email": "test@example.com",
                 "model_type": "classification",
@@ -379,10 +380,10 @@ class TestBlackBoxSessionInitialization:
                 session = BlackBoxSession(
                     eval_input_batch=mock_eval_function,
                     token=valid_token,
-                    client_id=user_data["client_id"],
+                    user_id=user_data["user_id"],
                 )
 
-                from bbe_sdk.utils.data import parse_inputs_format
+                from src.config.data import parse_inputs_format
 
                 expected_format = parse_inputs_format(shape_str)
                 assert session._inputs_format.shape == expected_format.shape

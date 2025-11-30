@@ -2,8 +2,8 @@ import pytest
 import responses
 import numpy as np
 from unittest.mock import patch, Mock
-from bbe_sdk.session import BlackBoxSession
-from bbe_sdk.proto import calibration_pb2
+from src.session import BlackBoxSession
+from src.pb.outcomingData import calibration_pb2
 from tests.mocks.auth_server_mock import UsersServerMock
 from tests.mocks.middleware_mock import MiddlewareFactory, MiddlewareMock
 from tests.mocks.protobuf_fixtures import ProtobufFixtures
@@ -155,7 +155,7 @@ class TestBlackBoxSessionSendProbs(IntegrationTestBase):
             session = BlackBoxSession(
                 eval_input_batch=mock_eval_function,
                 token=valid_token,
-                client_id=sample_user_data["client_id"],
+                user_id=sample_user_data["user_id"],
             )
 
             predictions = [[0.5, 0.3, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
