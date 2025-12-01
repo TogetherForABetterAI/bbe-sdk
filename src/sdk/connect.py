@@ -74,7 +74,7 @@ class Connect:
             InvalidTokenError: If connection establishment fails
             RuntimeError: If credentials are missing in response
         """
-        url = f"{self.base_url}/users/connect"
+        url = f"{self.base_url}/sessions/start"
         try:
             connect_resp = self._http_client.post(
                 url,
