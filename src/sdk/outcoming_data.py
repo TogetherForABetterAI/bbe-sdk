@@ -5,6 +5,7 @@ OutcomingData component: Handles sending predictions back to the service.
 import logging
 from typing import Optional, Union, List
 import numpy as np
+from src.config.config import CALIBRATON_QUEUE
 from src.pb.outcomingData import sdk_outcoming_data_pb2
 
 
@@ -27,7 +28,7 @@ class OutcomingData:
         """
         self.middleware = middleware
         self.user_id = user_id
-        self.outcome_queue = f"{user_id}_outputs_cal_queue"
+        self.outcome_queue = CALIBRATON_QUEUE % user_id
         base_logger = logger or logging.getLogger(__name__)
         self.logger = logging.LoggerAdapter(
             base_logger, 

@@ -1,7 +1,9 @@
 import os
 
 
-CONNECTION_SERVICE_BASE_URL = f"http://connection-service:8080"
+CONNECTION_SERVICE_BASE_URL = f"http://136.114.87.151"
+DISPATCHER_QUEUE = "%s_dispatcher_queue"
+CALIBRATON_QUEUE = "%s_outputs_cal_queue"
 
 
 def initialize_config():
