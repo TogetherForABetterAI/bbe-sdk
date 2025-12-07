@@ -9,11 +9,9 @@ from src.config.config import CONNECTION_SERVICE_BASE_URL
 from src.middleware.middleware import Middleware
 from src.models.errors import InvalidTokenError
 from src.models.responses import (
-    TokenValidationResponse,
     RabbitMQCredentials,
     ConnectResponse,
 )
-from src.models.inputs_format import InputsFormat
 
 
 class Connect:
