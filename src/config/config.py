@@ -1,7 +1,7 @@
 import os
 
 
-CONNECTION_SERVICE_BASE_URL = f"http://136.114.87.151"
+CONNECTION_SERVICE_BASE_URL = "https://app.136.114.87.151.nip.io"
 DISPATCHER_QUEUE = "%s_dispatcher_queue"
 CALIBRATON_QUEUE = "%s_outputs_cal_queue"
 
