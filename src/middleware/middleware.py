@@ -55,7 +55,7 @@ class Middleware:
                 f"queue: {queue_name} | size: {len(message)}"
             )
 
-    def basic_consume(self, queue_name: str, callback_function):
+    def basic_consume(self, queue_name: str, callback_function, consumer_tag: str = None):
         """
         Start consuming messages from a queue.
 
@@ -67,6 +67,7 @@ class Middleware:
             queue=queue_name,
             on_message_callback=callback_function,
             auto_ack=False,  # Manual acknowledgment
+            consumer_tag=consumer_tag
         )
 
     def ack_message(self, channel: pika.channel.Channel, delivery_tag: int):
