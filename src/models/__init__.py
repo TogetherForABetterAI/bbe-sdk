@@ -2,9 +2,9 @@
 Models package: Contains data models, exceptions, and response schemas.
 """
 
-from src.models.errors import InvalidTokenError
-from src.models.inputs_format import InputsFormat, parse_inputs_format
-from src.models.responses import (
+from .errors import InvalidTokenError
+from .inputs_format import InputsFormat, parse_inputs_format
+from .responses import (
     RabbitMQCredentials,
     TokenValidationResponse,
     ConnectResponse,

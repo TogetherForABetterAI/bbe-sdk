@@ -5,7 +5,7 @@ OutcomingData component: Handles sending predictions back to the service.
 import logging
 from typing import Optional, Union, List
 import numpy as np
-from src.pb.outcomingData import sdk_outcoming_data_pb2
+from ..pb.outcomingData import sdk_outcoming_data_pb2
 
 
 class OutcomingData:
