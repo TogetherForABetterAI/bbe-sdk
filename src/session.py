@@ -50,7 +50,7 @@ class BlackBoxSession:
             )
 
             self._middleware.basic_consume(
-                self._incoming_data.income_queue, self._handle_incoming_data
+                self._incoming_data.income_queue, self._handle_incoming_data, consumer_tag=user_id
             )
             
             self.logger.info("Consumption setup successful", extra={

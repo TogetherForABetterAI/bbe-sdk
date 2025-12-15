@@ -6,6 +6,7 @@ import logging
 from time import time
 import numpy as np
 from typing import Callable, Any, Optional
+from ..config.config import DISPATCHER_QUEUE
 from ..pb.incomingData.data_batch_pb2 import DataBatchUnlabeled
 
 
@@ -32,7 +33,7 @@ class IncomingData:
         self.inputs_format = inputs_format
         self.on_message_callback = on_message_callback
         self.user_id = user_id
-        self.income_queue = f"{user_id}_dispatcher_queue"
+        self.income_queue = DISPATCHER_QUEUE % user_id
         self._processed_batch_indices = (
             set()
         )  # Track processed batch indices to avoid duplicates
