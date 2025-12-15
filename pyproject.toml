@@ -57,9 +57,8 @@ dev = [
 
 [tool.setuptools]
 include-package-data = true
-
-[tool.setuptools.packages.find]
-include = ["bbe_sdk*"]
+package-dir = {"bbe_sdk" = "src"}
+packages = ["bbe_sdk", "bbe_sdk.config", "bbe_sdk.middleware", "bbe_sdk.models", "bbe_sdk.pb", "bbe_sdk.pb.incomingData", "bbe_sdk.pb.outcomingData", "bbe_sdk.sdk"]
 
 [tool.setuptools.package-data]
 bbe_sdk = ["proto/*.proto"]
