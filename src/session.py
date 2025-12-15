@@ -1,8 +1,8 @@
 import logging
-from src.sdk.connect import Connect
-from src.sdk.incoming_data import IncomingData
-from src.sdk.outcoming_data import OutcomingData
-from src.models.inputs_format import parse_inputs_format
+from .sdk.connect import Connect
+from .sdk.incoming_data import IncomingData
+from .sdk.outcoming_data import OutcomingData
+from .models.inputs_format import parse_inputs_format
 import numpy as np
 
 

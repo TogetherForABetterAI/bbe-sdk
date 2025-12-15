@@ -5,13 +5,15 @@ Connect component: Handles authentication, token validation, and user informatio
 import logging
 import requests
 from typing import Optional, Callable
-from src.config.config import CONNECTION_SERVICE_BASE_URL
-from src.middleware.middleware import Middleware
-from src.models.errors import InvalidTokenError
-from src.models.responses import (
+from ..config.config import CONNECTION_SERVICE_BASE_URL
+from ..middleware.middleware import Middleware
+from ..models.errors import InvalidTokenError
+from ..models.responses import (
+    TokenValidationResponse,
     RabbitMQCredentials,
     ConnectResponse,
 )
+from ..models.inputs_format import InputsFormat
 
 
 class Connect:

@@ -6,8 +6,8 @@ import logging
 from time import time
 import numpy as np
 from typing import Callable, Any, Optional
-from src.config.config import DISPATCHER_QUEUE
-from src.pb.incomingData.data_batch_pb2 import DataBatchUnlabeled
+from ..config.config import DISPATCHER_QUEUE
+from ..pb.incomingData.data_batch_pb2 import DataBatchUnlabeled
 
 
 class IncomingData:
