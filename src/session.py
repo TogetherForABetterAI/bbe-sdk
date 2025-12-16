@@ -6,11 +6,18 @@ from .models.inputs_format import parse_inputs_format
 import numpy as np
 
 
+# Use a module-level logger for the library. Libraries should not configure
+# the application's logging automatically. We attach a NullHandler to avoid
+# warnings when the host application doesn't configure logging yet. If the
+# application wants a quick setup, it can call `configure_default_logging`.
+module_logger = logging.getLogger("bbe_sdk.session")
+module_logger.addHandler(logging.NullHandler())
+
+
 class BlackBoxSession:
     def __init__(self, eval_input_batch, token, user_id):
         # 2. Use an Adapter to inject user_id into every log automatically
-        logger = logging.getLogger(__name__)
-        self.logger = logging.LoggerAdapter(logger, {'user_id': user_id, 'component': 'Session'})
+        self.logger = logging.LoggerAdapter(module_logger, {'user_id': user_id, 'component': 'Session'})
         
         self.logger.info("Initializing BlackBoxSession")
         
@@ -120,3 +127,19 @@ class BlackBoxSession:
                 'retry': True
             })
             self._middleware.nack_message(ch, method.delivery_tag, requeue=True)
+
+
+def configure_default_logging(level=logging.INFO):
+    """
+    Convenience helper for applications that want a quick way to enable
+    library logs. Libraries should not configure logging automatically, but
+    calling this from the host application will configure the root logger
+    with a basic handler if none exist.
+
+    Example:
+        from bbe_sdk.session import configure_default_logging
+        configure_default_logging()
+    """
+    root = logging.getLogger()
+    if not root.handlers:
+        logging.basicConfig(level=level)
